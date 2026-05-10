@@ -13,12 +13,18 @@
 .activity-message__text {
   margin: 0;
   font-family:
-    Inter,
-    system-ui,
+    ui-sans-serif,
     -apple-system,
-    BlinkMacSystemFont,
+    system-ui,
     "Segoe UI",
-    sans-serif;
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif,
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Segoe UI Symbol",
+    "Noto Color Emoji";
   font-size: 13px;
   line-height: 1.5;
   font-weight: 400;

@@ -1,7 +1,31 @@
 @use "sass:map";
 
-$font-heading: "Space Grotesk", "Segoe UI", sans-serif;
-$font-body: "Be Vietnam Pro", "Segoe UI", sans-serif;
+$font-heading:
+  ui-sans-serif,
+  -apple-system,
+  system-ui,
+  "Segoe UI",
+  Roboto,
+  Helvetica,
+  Arial,
+  sans-serif,
+  "Apple Color Emoji",
+  "Segoe UI Emoji",
+  "Segoe UI Symbol",
+  "Noto Color Emoji";
+$font-body:
+  ui-sans-serif,
+  -apple-system,
+  system-ui,
+  "Segoe UI",
+  Roboto,
+  Helvetica,
+  Arial,
+  sans-serif,
+  "Apple Color Emoji",
+  "Segoe UI Emoji",
+  "Segoe UI Symbol",
+  "Noto Color Emoji";
 
 // Full color scales (50-950) inspired by Tailwind palettes.
 $colors: (

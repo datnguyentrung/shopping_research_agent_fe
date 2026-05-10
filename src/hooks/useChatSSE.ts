@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from "react";
 import { streamChat } from "@/services/chatService";
+import { useCallback, useRef, useState } from "react";
 import type {
   ChatMessage,
   ChatRequest,
@@ -66,7 +66,7 @@ export const useChatSSE = () => {
         isHidden?: boolean;
       },
     ) => {
-      const assistantMessageId = crypto.randomUUID();
+      let assistantMessageId: string = crypto.randomUUID();
 
       setError(null);
       setIsLoading(true);
@@ -79,6 +79,38 @@ export const useChatSSE = () => {
           !options.isHidden
         ) {
           next.push(createMessage("user", options.userMessage));
+        }
+
+        if (options?.isHidden) {
+          let lastAssistantIndex = -1;
+          for (let i = next.length - 1; i >= 0; i--) {
+            if (next[i].role === "assistant") {
+              lastAssistantIndex = i;
+              break;
+            }
+          }
+
+          if (lastAssistantIndex !== -1) {
+            assistantMessageId = next[lastAssistantIndex].id;
+            const oldMsg = next[lastAssistantIndex];
+            const oldProduct =
+              oldMsg.a2ui?.type === "a2ui_interactive_product"
+                ? oldMsg.a2ui.data.product
+                : null;
+            const latestSeenProduct =
+              oldProduct ??
+              (oldMsg.seenProducts && oldMsg.seenProducts.length > 0
+                ? oldMsg.seenProducts[oldMsg.seenProducts.length - 1]
+                : null);
+
+            next[lastAssistantIndex] = {
+              ...oldMsg,
+              content: "",
+              a2ui: undefined,
+              seenProducts: latestSeenProduct ? [latestSeenProduct] : [],
+            };
+            return next;
+          }
         }
 
         next.push({
@@ -130,13 +162,16 @@ export const useChatSSE = () => {
 
   const sendHiddenMessage = useCallback(
     async (action: string, payload: unknown) => {
-      await startStream({
-        message: "",
-        hidden_events: {
-          action,
-          payload,
+      await startStream(
+        {
+          message: "",
+          hidden_events: {
+            action,
+            payload,
+          },
         },
-      }, { isHidden: true});
+        { isHidden: true },
+      );
     },
     [startStream],
   );

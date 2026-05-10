@@ -4,7 +4,19 @@
   height: 100svh;
   min-height: 100svh;
   background: #ffffff;
-  font-family: "Inter", "Segoe UI", sans-serif;
+  font-family:
+    ui-sans-serif,
+    -apple-system,
+    system-ui,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif,
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Segoe UI Symbol",
+    "Noto Color Emoji";
   color: #1a1a1a;
   overflow: hidden;
 }

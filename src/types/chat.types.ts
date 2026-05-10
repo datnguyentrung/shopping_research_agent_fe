@@ -8,8 +8,9 @@ export interface ChatMessage {
   role: Role;
   content: string;
   createdAt: string;
-  products?: CapturedData[]; // Thêm trường products để chứa thông tin sản phẩm liên quan đến tin nhắn, nếu có
-  a2ui?: A2UIPayload; // Thêm trường a2ui để chứa payload đặc biệt cho giao diện, nếu có
+  products?: CapturedData[];
+  seenProducts?: CapturedData[];
+  a2ui?: A2UIPayload;
 }
 
 export interface ChatRequest {

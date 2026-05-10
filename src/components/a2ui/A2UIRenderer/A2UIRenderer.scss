@@ -1,6 +1,5 @@
 .a2ui-renderer__questionnaire,
 .a2ui-renderer__product,
-.a2ui-renderer__processing,
 .a2ui-renderer__done {
   width: 100%;
   border: 1px solid #e5e7eb;
@@ -16,7 +15,6 @@
 }
 
 .a2ui-renderer__subtitle,
-.a2ui-renderer__processing-text,
 .a2ui-renderer__product-shop {
   margin: 6px 0 0;
   font-size: 12px;
@@ -62,19 +60,6 @@
 .a2ui-renderer__btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.a2ui-renderer__progress-track {
-  margin-top: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #e5e7eb;
-  overflow: hidden;
-}
-
-.a2ui-renderer__progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #2563eb 0%, #0ea5e9 100%);
 }
 
 .a2ui-renderer__product {

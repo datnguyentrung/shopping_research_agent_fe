@@ -96,16 +96,16 @@
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  padding: 24px 16px;
+  padding: 16px 20px;
 }
 
 .chat-window__messages-stack {
   max-width: 768px;
-  width: 100%;
+  width: 80%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
 .chat-window__message-row {
@@ -171,13 +171,13 @@
 }
 
 .chat-window__bubble {
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-radius: 16px;
   font-size: 14px;
 }
 
 .chat-window__a2ui-block {
-  margin-top: 10px;
+  margin-top: 8px;
   width: 100%;
 }
 
@@ -189,6 +189,180 @@
 .chat-window__bubble--assistant {
   width: 100%;
   max-width: 100%;
+  color: #374151; /* Đổi màu text dịu mắt hơn */
+  line-height: 1.7;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  overflow-wrap: break-word;
+
+  /* 1. TYPOGRAPHY - Phân cấp rõ ràng */
+  h3 {
+    margin: 24px 0 16px;
+    color: #111827;
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 2px solid #f3f4f6;
+    padding-bottom: 8px;
+  }
+
+  h4 {
+    margin: 20px 0 12px;
+    color: #1f2937;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  /* 2. BLOCKQUOTE - Khung Highlight Chuyên gia */
+  /* 2. BLOCKQUOTE - Khung Highlight Chuyên gia */
+  blockquote {
+    margin: 16px 0 24px;
+    padding: 16px 20px;
+    background: linear-gradient(
+      to right,
+      #f8fafc,
+      #ffffff
+    ); /* Tone nền xám nhạt/trắng sang trọng, không dùng nền xanh nữa */
+    border-left: 4px solid #3b82f6; /* Viền xanh dương (Blue) tạo cảm giác công nghệ, uy tín và thông minh */
+    border-radius: 0 12px 12px 0;
+    color: #374151; /* Chữ xám đậm, dễ đọc tuyệt đối */
+    font-style: italic; /* In nghiêng để ra dáng lời trích dẫn chuyên gia */
+    font-size: 0.95rem;
+    line-height: 1.65;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+    /* Căn chỉnh lại thẻ p bên trong và làm nổi bật phần tiêu đề */
+    p {
+      margin: 0;
+    }
+
+    strong {
+      color: #1e3a8a; /* Tiêu đề "Góc Nhìn Chuyên Gia" màu xanh dương đậm */
+      font-weight: 700;
+      font-style: normal; /* Không in nghiêng phần tiêu đề */
+      margin-right: 4px;
+    }
+  }
+
+  /* 3. HÌNH ẢNH SẢN PHẨM - Hiệu ứng thẻ Card */
+  img {
+    max-width: 100%;
+    width: 300px; /* Kích thước cố định để form dáng luôn đẹp */
+    height: auto;
+    aspect-ratio: 1 / 1; /* Cố định tỷ lệ vuông cho đẹp */
+
+    /* ĐIỂM MẤU CHỐT NẰM Ở 4 DÒNG NÀY: */
+    object-fit: contain; /* Ép sản phẩm hiển thị trọn vẹn, không bị cắt xén */
+    padding: 16px; /* Tạo khoảng trống (padding) thở đều 4 phía bên trong viền */
+    background-color: #ffffff; /* Đổ nền trắng để viền và ảnh hòa làm một khung */
+    margin: 16px auto; /* Tự động căn giữa khung ảnh theo chiều ngang, trên/dưới cách 16px */
+
+    display: block;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  /* 4. CALL TO ACTION - Biến Link thành Nút bấm (Button) */
+  a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(
+      135deg,
+      #ef4444 0%,
+      #dc2626 100%
+    ); /* Nút màu đỏ cam kích thích mua */
+    color: #ffffff !important;
+    text-decoration: none;
+    font-weight: 600;
+    // font-size: 0.95rem;
+    padding: 5px 10px;
+    border-radius: 8px;
+    margin: 6px 0;
+    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.25);
+    transition: all 0.2s ease;
+    word-break: keep-all;
+    white-space: nowrap;
+
+    &:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 8px rgba(239, 68, 68, 0.3);
+      text-decoration: none;
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
+  /* 5. TABLE - Bảng so sánh hiện đại */
+  table {
+    display: block;
+    width: 100%;
+    margin: 24px 0;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    border-collapse: separate;
+    border-spacing: 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: 0.9rem;
+  }
+
+  th,
+  td {
+    min-width: 130px;
+    padding: 14px 16px;
+    border-right: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle;
+  }
+
+  th {
+    background: #f9fafb;
+    color: #374151;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* Highlight cột đầu tiên (Tiêu chí) */
+  tbody td:first-child {
+    font-weight: 600;
+    color: #111827;
+    background: #fdfdfd;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+  th:last-child,
+  td:last-child {
+    border-right: none;
+  }
+
+  /* 6. LISTS (Bullets) - Định dạng các gạch đầu dòng gọn gàng */
+  ul {
+    padding-left: 20px;
+    margin-bottom: 16px;
+    li {
+      margin-bottom: 8px;
+      padding-left: 4px;
+      &::marker {
+        color: #9ca3af;
+      }
+    }
+  }
 }
 
 .chat-window__bubble--user {
@@ -196,6 +370,7 @@
   color: #1e3a5f;
   border: 1px solid #bfdbfe;
   border-top-right-radius: 6px;
+  max-width: 420px;
 }
 
 .chat-window__assistant-actions {

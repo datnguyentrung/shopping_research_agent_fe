@@ -1,0 +1,259 @@
+/* ===== KEYFRAMES ===== */
+
+@keyframes proc-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Dải sáng chạy liên tục trên thanh progress */
+@keyframes proc-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
+/* Sọc chéo trượt liên tục */
+@keyframes proc-stripe-slide {
+  0%   { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+}
+
+/* Dấu 3 chấm nhấp nháy */
+@keyframes proc-dot-1 { 0%, 20%  { opacity: 0; } 40%, 100% { opacity: 1; } }
+@keyframes proc-dot-2 { 0%, 40%  { opacity: 0; } 60%, 100% { opacity: 1; } }
+@keyframes proc-dot-3 { 0%, 60%  { opacity: 0; } 80%, 100% { opacity: 1; } }
+
+/* Thanh indeterminate đẩy đẩy */
+@keyframes proc-indeterminate {
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(200%); }
+  100% { transform: translateX(350%); }
+}
+
+/* Fade-in nhẹ cho status text */
+@keyframes proc-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Fade-in khi text thay đổi (trigger qua key remount) */
+@keyframes proc-text-enter {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ===== CONTAINER ===== */
+
+.a2ui-processing {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f0f4ff 0%, #fafbff 100%);
+  border: 1px solid #e0e7ff;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.06);
+}
+
+
+/* ===== HEADER: spinner + text + percent ===== */
+
+.a2ui-processing__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.a2ui-processing__spinner {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: proc-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Text với fade-in khi thay đổi */
+.a2ui-processing__text {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #374151;
+  font-weight: 500;
+  min-height: 1.5em;
+  animation: proc-text-enter 0.35s ease-out;
+}
+
+/* Dấu 3 chấm nhấp nháy ở cuối statusText */
+.a2ui-processing__dots {
+  display: inline-flex;
+  margin-left: 1px;
+  vertical-align: baseline;
+
+  span {
+    display: inline-block;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: #2563eb;
+    margin-left: 2px;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-duration: 1.2s;
+
+    &:nth-child(1) { animation-name: proc-dot-1; }
+    &:nth-child(2) { animation-name: proc-dot-2; }
+    &:nth-child(3) { animation-name: proc-dot-3; }
+  }
+}
+
+.a2ui-processing__percent {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2563eb;
+  min-width: 40px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+
+/* ===== PROGRESS TRACK ===== */
+
+.a2ui-processing__track {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: #e0e7ff;
+  overflow: hidden;
+}
+
+/* Thanh progress chính */
+.a2ui-processing__bar {
+  position: relative;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb 0%, #6d28d9 100%);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+/* --- Lớp sọc chéo trượt (stripes) --- */
+.a2ui-processing__stripes {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.18) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.18) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 40px 40px;
+  animation: proc-stripe-slide 0.8s linear infinite;
+}
+
+/* --- Lớp dải sáng chạy (shimmer overlay) --- */
+.a2ui-processing__shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 100%
+  );
+  animation: proc-shimmer 1.8s ease-in-out infinite;
+}
+
+/* --- Thanh indeterminate (khi không có percent) --- */
+.a2ui-processing__bar--indeterminate {
+  width: 30% !important;
+  background: linear-gradient(90deg, #2563eb, #7c3aed, #2563eb);
+  background-size: 200% 100%;
+  animation: proc-indeterminate 1.6s ease-in-out infinite;
+}
+
+
+/* ===== STEP INDICATORS ===== */
+
+.a2ui-processing__steps {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 0 2px;
+}
+
+.a2ui-processing__step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.3s ease;
+}
+
+.a2ui-processing__step-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c7d2fe;
+  transition: all 0.4s ease;
+}
+
+.a2ui-processing__step--done .a2ui-processing__step-dot {
+  background: #2563eb;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.5);
+}
+
+.a2ui-processing__step-label {
+  font-size: 10px;
+  color: #a5b4fc;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.4s ease;
+}
+
+.a2ui-processing__step--done .a2ui-processing__step-label {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .a2ui-processing__spinner {
+    animation: none;
+    border-top-color: #2563eb;
+  }
+  .a2ui-processing__stripes {
+    animation: none;
+  }
+  .a2ui-processing__shimmer {
+    animation: none;
+    opacity: 0.15;
+    width: 100%;
+  }
+  .a2ui-processing__bar {
+    transition: width 0.15s linear;
+  }
+  .a2ui-processing__bar--indeterminate {
+    animation: none;
+    width: 60% !important;
+  }
+  .a2ui-processing__dots span {
+    animation: none;
+    opacity: 0.6;
+  }
+  .a2ui-processing__text {
+    animation: none;
+  }
+}
