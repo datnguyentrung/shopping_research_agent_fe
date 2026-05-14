@@ -68,3 +68,21 @@ export const streamChat = async (
     },
   });
 };
+
+export const fetchChatHistory = async (sessionId: string) => {
+  const response = await fetch(
+    `${apiConfig.baseUrl}/chat/history/${sessionId}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Không thể tải lịch sử trò chuyện");
+  }
+
+  return response.json();
+};

@@ -1,5 +1,5 @@
-import { streamChat } from "@/services/chatService";
-import { useCallback, useRef, useState } from "react";
+import { fetchChatHistory, streamChat } from "@/services/chatService";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ChatMessage,
   ChatRequest,
@@ -17,11 +17,19 @@ const createMessage = (
   createdAt: new Date().toISOString(),
 });
 
-export const useChatSSE = () => {
+export const useChatSSE = (initialSessionId?: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const sessionIdRef = useRef<string>(crypto.randomUUID());
+  const sessionIdRef = useRef<string>(initialSessionId || crypto.randomUUID());
+
+  // Nếu initialSessionId đổi (khách bấm sang chat khác trên Sidebar), cập nhật lại ref
+  useEffect(() => {
+    if (initialSessionId) {
+      sessionIdRef.current = initialSessionId;
+    }
+  }, [initialSessionId]);
 
   const applyChunkToAssistant = useCallback(
     (assistantMessageId: string, chunk: ChatStreamChunk) => {
@@ -184,12 +192,45 @@ export const useChatSSE = () => {
     setError(null);
   }, []);
 
+  const loadHistory = useCallback(async (sessionId: string) => {
+    setIsFetchingHistory(true);
+    setError(null);
+    try {
+      const data = await fetchChatHistory(sessionId);
+
+      if (data && data.history && Array.isArray(data.history)) {
+        // Map dữ liệu từ BE về chuẩn ChatMessage của FE
+        const formattedMessages: ChatMessage[] = data.history.map(
+          (msg: unknown) => {
+            const { role, content } = msg as { role: string; content: string };
+            return {
+              id: crypto.randomUUID(),
+              role,
+              content,
+              createdAt: new Date().toISOString(), // Lấy giờ hiện tại hoặc giờ từ BE nếu BE có trả về
+            };
+          },
+        );
+
+        setMessages(formattedMessages);
+        sessionIdRef.current = sessionId; // Đồng bộ sessionId để chat tiếp đúng luồng
+      }
+    } catch (err) {
+      console.error("Failed to load history:", err);
+      setError("Không thể phục hồi lịch sử trò chuyện. Bắt đầu phiên mới.");
+    } finally {
+      setIsFetchingHistory(false);
+    }
+  }, []);
+
   return {
     messages,
-    isLoading,
+    isLoading: isLoading || isFetchingHistory, // Gộp chung trạng thái loading
     error,
+    sessionId: sessionIdRef.current, // Trả ra sessionId hiện tại
+    loadHistory, // Trả ra hàm load
     sendMessage,
     sendHiddenMessage,
     resetChat,
   };
-};
+};;
