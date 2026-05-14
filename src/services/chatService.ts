@@ -13,7 +13,7 @@ export const streamChat = async (
   callbacks: StreamCallbacks,
 ): Promise<void> => {
   const ctrl = new AbortController();
-  await fetchEventSource(`${apiConfig.baseUrl}/chat/stream`, {
+  await fetchEventSource(`${apiConfig.baseUrl}/chat`, {
     method: "POST",
     // 👇 THÊM DÒNG NÀY ĐỂ TẮT TÍNH NĂNG TỰ NGẮT KHI CHUYỂN TAB
     openWhenHidden: true,
