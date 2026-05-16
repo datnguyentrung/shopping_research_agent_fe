@@ -6,6 +6,113 @@
   min-height: 0;
   background: #ffffff;
   overflow: hidden;
+  position: relative;
+}
+
+/* ───────── Empty State Container ───────── */
+.chat-window__empty-state {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ───────── Skeleton State ───────── */
+.chat-window__skeleton {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 0;
+  overflow: hidden;
+}
+
+.chat-window__skeleton-stack {
+  max-width: 768px;
+  width: 80%;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.chat-window__skeleton-row {
+  display: flex;
+  gap: 12px;
+}
+
+.chat-window__skeleton-row--assistant {
+  flex-direction: row;
+}
+
+.chat-window__skeleton-row--user {
+  flex-direction: row-reverse;
+}
+
+.chat-window__skeleton-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: #f0f0f5;
+  animation: chat-window__bone-pulse 1.8s ease-in-out infinite;
+}
+
+.chat-window__skeleton-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: #fafafa;
+}
+
+.chat-window__skeleton-bubble--assistant {
+  max-width: 75%;
+  flex: 1;
+}
+
+.chat-window__skeleton-bubble--user {
+  max-width: 45%;
+  align-items: flex-end;
+}
+
+.chat-window__skeleton-bone {
+  border-radius: 8px;
+  background: #f0f0f5;
+  animation: chat-window__bone-pulse 1.8s ease-in-out infinite;
+
+  &--lg {
+    width: 100%;
+    height: 14px;
+  }
+
+  &--md {
+    width: 85%;
+    height: 14px;
+    animation-delay: 0.15s;
+  }
+
+  &--sm {
+    width: 55%;
+    height: 14px;
+    animation-delay: 0.3s;
+  }
+
+  &--user {
+    width: 100%;
+    height: 14px;
+    animation-delay: 0.1s;
+  }
+}
+
+@keyframes chat-window__bone-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .chat-window__top-bar {

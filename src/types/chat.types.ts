@@ -1,7 +1,5 @@
-import type { A2UIPayload } from "./a2ui.types";
+import type { A2UIPayload, Role } from "./a2ui.types";
 import type { CapturedData } from "./product.types";
-
-export type Role = "user" | "assistant" | "system";
 
 export interface ChatMessage {
   id: string;

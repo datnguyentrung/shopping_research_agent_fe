@@ -1,4 +1,5 @@
 .chat-sidebar {
+  position: relative;
   height: 100%;
   background: #f9f9f9;
   border-right: 1px solid #ebebeb;
@@ -6,6 +7,23 @@
   flex-direction: column;
   overflow: hidden;
   flex-shrink: 0;
+}
+
+.chat-sidebar__resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px; /* Nằm trên viền phải để dễ bắt drag */
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 5;
+  touch-action: none; /* Ngăn scroll trên mobile khi drag */
+}
+
+/* Hiệu ứng hover khi di chuột vào mép phải */
+.chat-sidebar__resize-handle:hover,
+.chat-sidebar__resize-handle:active {
+  background: rgba(37, 99, 235, 0.15);
 }
 
 .chat-sidebar__header {
@@ -109,6 +127,35 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.chat-sidebar__loading-state {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #6b7280;
+}
+
+.chat-sidebar__collapsed-loading {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+}
+
+.chat-sidebar__loading-spinner {
+  width: 18px;
+  height: 18px;
+  animation: chat-sidebar-spin 0.9s linear infinite;
+}
+
+.chat-sidebar__loading-text {
+  font-size: 13px;
+  color: #6b7280;
 }
 
 .chat-sidebar__section-items {
@@ -396,5 +443,15 @@
     position: relative;
     z-index: 4;
     box-shadow: 8px 0 22px rgba(15, 23, 42, 0.08);
+  }
+}
+
+@keyframes chat-sidebar-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
   }
 }

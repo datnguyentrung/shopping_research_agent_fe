@@ -1,59 +1,90 @@
-import { LogOut, Menu, MessageSquare, Plus, Search } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConversations } from "@/hooks/useConversations";
+import {
+  LoaderCircle,
+  LogOut,
+  Menu,
+  MessageSquare,
+  Plus,
+  Search,
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useInView } from "react-intersection-observer";
+import { useNavigate, useParams } from "react-router-dom";
+import type { ConversationResponse } from "../../types/conversation.types";
+import { formatDateDMY, formatTimeHM } from "../../utils/format";
+import { getGuestChats } from "../../utils/guestChatStorage";
 import "./Sidebar.scss";
+
+const MIN_WIDTH = 268;
+const COLLAPSED_WIDTH = 64;
+
+function getMaxWidth() {
+  return Math.floor(window.innerWidth / 4);
+}
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeChat, setActiveChat] = useState(1);
+  const [customWidth, setCustomWidth] = useState<number>(MIN_WIDTH);
+  const [isDragging, setIsDragging] = useState(false);
   const { user, loginWithGoogle, logout } = useAuth();
+  const navigate = useNavigate();
+  const { sessionId: activeChat } = useParams<{ sessionId: string }>();
 
-  const chatHistory = [
-    {
-      id: 1,
-      title: "React hooks explained",
-      time: "Just now",
-      category: "Today",
-    },
-    {
-      id: 2,
-      title: "Web scraping with Python",
-      time: "2h ago",
-      category: "Today",
-    },
-    {
-      id: 3,
-      title: "React component optimization",
-      time: "Yesterday",
-      category: "Yesterday",
-    },
-    {
-      id: 4,
-      title: "Database schema design",
-      time: "2 days ago",
-      category: "Previous 7 Days",
-    },
-    {
-      id: 5,
-      title: "API authentication best practices",
-      time: "3 days ago",
-      category: "Previous 7 Days",
-    },
-    {
-      id: 6,
-      title: "CSS Grid layout examples",
-      time: "1 week ago",
-      category: "Previous 7 Days",
-    },
-  ];
+  // --- Guest: đọc chat từ localStorage + lắng nghe custom event ---
+  const [guestChats, setGuestChats] = useState<ConversationResponse[]>(() =>
+    getGuestChats(),
+  );
+
+  const handleGuestChatUpdate = useCallback(() => {
+    setGuestChats(getGuestChats());
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("guest_chat_updated", handleGuestChatUpdate);
+    return () =>
+      window.removeEventListener("guest_chat_updated", handleGuestChatUpdate);
+  }, [handleGuestChatUpdate]);
+
+  // --- Auth: infinite query phân trang ---
+  const {
+    data: infiniteData,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useConversations({
+    user_id: user?.id ?? "",
+    limit: 10,
+  });
+
+  const isConversationListLoading = Boolean(user && isLoading);
+
+  // Sentinel cho infinite scroll
+  const { ref: sentinelRef, inView } = useInView({ threshold: 0 });
+
+  useEffect(() => {
+    if (inView && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage]);
+
+  // --- Gộp dữ liệu theo trạng thái xác thực ---
+  const chatHistory = useMemo<ConversationResponse[]>(() => {
+    if (user) {
+      return infiniteData?.pages.flatMap((page) => page.items).flat() ?? [];
+    }
+    return guestChats;
+  }, [user, infiniteData, guestChats]);
 
   const grouped = chatHistory.reduce(
     (acc, chat) => {
-      if (!acc[chat.category]) acc[chat.category] = [];
-      acc[chat.category].push(chat);
+      const date = formatDateDMY(chat.createdAt);
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(chat);
       return acc;
     },
     {} as Record<string, typeof chatHistory>,
@@ -69,12 +100,56 @@ export default function Sidebar() {
         .slice(0, 2)
     : "?";
 
+  const handleNewChat = () => navigate("/");
+
+  // --- Drag-to-resize logic ---
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (isCollapsed) return;
+      e.preventDefault();
+      setIsDragging(true);
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [isCollapsed],
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isDragging) return;
+      const maxWidth = getMaxWidth();
+      const sidebarRect = (
+        e.currentTarget as HTMLElement
+      ).getBoundingClientRect();
+      const newWidth = Math.round(e.clientX - sidebarRect.left);
+      setCustomWidth(Math.max(MIN_WIDTH, Math.min(newWidth, maxWidth)));
+    },
+    [isDragging],
+  );
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    setIsDragging(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  }, []);
+
+  const sidebarWidth = isCollapsed ? COLLAPSED_WIDTH : customWidth;
+
   return (
     <motion.aside
       initial={false}
-      animate={{ width: isCollapsed ? "64px" : "268px" }}
-      transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+      animate={{ width: sidebarWidth }}
+      transition={
+        isDragging
+          ? { type: "tween", duration: 0 }
+          : { duration: 0.28, ease: [0.4, 0, 0.2, 1] }
+      }
       className="chat-sidebar"
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      style={isDragging ? { transition: "none" } : undefined}
     >
       {/* Header */}
       <div className="chat-sidebar__header">
@@ -93,6 +168,7 @@ export default function Sidebar() {
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.18 }}
               className="chat-sidebar__new-chat"
+              onClick={handleNewChat}
             >
               <Plus className="chat-sidebar__new-chat-icon" />
               <span>New Chat</span>
@@ -135,46 +211,63 @@ export default function Sidebar() {
               transition={{ duration: 0.18 }}
               className="chat-sidebar__list-expanded"
             >
-              {Object.entries(grouped).map(([category, chats]) => (
-                <div key={category} className="chat-sidebar__section">
-                  <div className="chat-sidebar__section-title">{category}</div>
-                  <div className="chat-sidebar__section-items">
-                    {chats.map((chat) => (
-                      <button
-                        key={chat.id}
-                        onClick={() => setActiveChat(chat.id)}
-                        className={`chat-sidebar__chat-item ${
-                          activeChat === chat.id
-                            ? "chat-sidebar__chat-item--active"
-                            : "chat-sidebar__chat-item--idle"
-                        }`}
-                      >
-                        <MessageSquare
-                          className={`chat-sidebar__chat-icon ${
-                            activeChat === chat.id
-                              ? "chat-sidebar__chat-icon--active"
-                              : "chat-sidebar__chat-icon--idle"
-                          }`}
-                        />
-                        <div className="chat-sidebar__chat-meta">
-                          <div
-                            className={`chat-sidebar__chat-title ${
-                              activeChat === chat.id
-                                ? "chat-sidebar__chat-title--active"
-                                : "chat-sidebar__chat-title--idle"
-                            }`}
-                          >
-                            {chat.title}
-                          </div>
-                          <div className="chat-sidebar__chat-time">
-                            {chat.time}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+              {isConversationListLoading ? (
+                <div className="chat-sidebar__loading-state">
+                  <LoaderCircle className="chat-sidebar__loading-spinner" />
+                  <span className="chat-sidebar__loading-text">
+                    Đang tải cuộc trò chuyện
+                  </span>
                 </div>
-              ))}
+              ) : (
+                Object.entries(grouped).map(([category, chats]) => (
+                  <div key={category} className="chat-sidebar__section">
+                    <div className="chat-sidebar__section-title">
+                      {category}
+                    </div>
+                    <div className="chat-sidebar__section-items">
+                      {chats.map((chat: ConversationResponse) => (
+                        <button
+                          key={chat.id}
+                          onClick={() => navigate(`/app/${chat.id}`)}
+                          className={`chat-sidebar__chat-item ${
+                            activeChat === chat.id
+                              ? "chat-sidebar__chat-item--active"
+                              : "chat-sidebar__chat-item--idle"
+                          }`}
+                        >
+                          <MessageSquare
+                            className={`chat-sidebar__chat-icon ${
+                              activeChat === chat.id
+                                ? "chat-sidebar__chat-icon--active"
+                                : "chat-sidebar__chat-icon--idle"
+                            }`}
+                          />
+                          <div className="chat-sidebar__chat-meta">
+                            <div
+                              className={`chat-sidebar__chat-title ${
+                                activeChat === chat.id
+                                  ? "chat-sidebar__chat-title--active"
+                                  : "chat-sidebar__chat-title--idle"
+                              }`}
+                            >
+                              {chat.title}
+                            </div>
+                            <div className="chat-sidebar__chat-time">
+                              {formatTimeHM(chat.createdAt)}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+
+              {/* Invisible anchor cho infinite scroll (authenticated) */}
+              {user && <div ref={sentinelRef} />}
+              {isFetchingNextPage && (
+                <div className="chat-sidebar__loading">Loading more...</div>
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -185,22 +278,31 @@ export default function Sidebar() {
               transition={{ duration: 0.18 }}
               className="chat-sidebar__list-collapsed"
             >
-              <button className="chat-sidebar__collapsed-action">
+              <button
+                className="chat-sidebar__collapsed-action"
+                onClick={handleNewChat}
+              >
                 <Plus className="chat-sidebar__collapsed-action-icon" />
               </button>
-              {chatHistory.map((chat) => (
-                <button
-                  key={chat.id}
-                  onClick={() => setActiveChat(chat.id)}
-                  className={`chat-sidebar__collapsed-item ${
-                    activeChat === chat.id
-                      ? "chat-sidebar__collapsed-item--active"
-                      : "chat-sidebar__collapsed-item--idle"
-                  }`}
-                >
-                  <MessageSquare className="chat-sidebar__collapsed-item-icon" />
-                </button>
-              ))}
+              {isConversationListLoading ? (
+                <div className="chat-sidebar__collapsed-loading">
+                  <LoaderCircle className="chat-sidebar__loading-spinner" />
+                </div>
+              ) : (
+                chatHistory.map((chat) => (
+                  <button
+                    key={chat.id}
+                    onClick={() => navigate(`/app/${chat.id}`)}
+                    className={`chat-sidebar__collapsed-item ${
+                      activeChat === chat.id
+                        ? "chat-sidebar__collapsed-item--active"
+                        : "chat-sidebar__collapsed-item--idle"
+                    }`}
+                  >
+                    <MessageSquare className="chat-sidebar__collapsed-item-icon" />
+                  </button>
+                ))
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -253,7 +355,10 @@ export default function Sidebar() {
                   className="chat-sidebar__login-btn"
                   onClick={loginWithGoogle}
                 >
-                  <svg className="chat-sidebar__google-icon" viewBox="0 0 24 24">
+                  <svg
+                    className="chat-sidebar__google-icon"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
                       fill="#4285F4"
@@ -283,7 +388,9 @@ export default function Sidebar() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
               className="chat-sidebar__user-collapsed"
-              title={user ? user.user_metadata?.full_name ?? "User" : "Đăng nhập"}
+              title={
+                user ? (user.user_metadata?.full_name ?? "User") : "Đăng nhập"
+              }
               onClick={!user ? loginWithGoogle : undefined}
             >
               {user ? (
@@ -297,7 +404,10 @@ export default function Sidebar() {
                   </AvatarFallback>
                 </Avatar>
               ) : (
-                <svg className="chat-sidebar__google-icon-sm" viewBox="0 0 24 24">
+                <svg
+                  className="chat-sidebar__google-icon-sm"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
                     fill="#4285F4"
@@ -320,6 +430,14 @@ export default function Sidebar() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Resize handle — only visible when expanded */}
+      {!isCollapsed && (
+        <div
+          className="chat-sidebar__resize-handle"
+          onPointerDown={handlePointerDown}
+        />
+      )}
     </motion.aside>
   );
 }

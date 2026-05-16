@@ -1,25 +1,33 @@
 import A2UIRenderer from "@/components/a2ui/A2UIRenderer";
+import { NewChat } from "@/components/ChatWindow/NewChat";
 import ProcessingStatus from "@/components/a2ui/ProcessingStatus";
 import { useScrollToBottom } from "@/hooks/useScrollToBottom";
 import type { ChatMessage } from "@/types/chat.types";
 import { formatDateTime } from "@/utils/formatters";
 import { Copy, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
-import { motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useRef, useState, type FC } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Skeleton } from "boneyard-js/react";
 import ActivityMessage from "../ActivityMessage";
 import TryOnModal from "../TryOnModal";
 import "./ChatWindow.scss";
 
+/* ───────── Props ───────── */
+
 interface ChatWindowProps {
-  messages: ChatMessage[];
+  messages: ChatMessage[] | null;
   isLoading: boolean;
+  isFetchingHistory: boolean;
   error: string | null;
   newSearchTerm: string;
   onReset: () => void;
   onSendHiddenMessage: (action: string, payload: unknown) => Promise<void>;
+  onQuickAction?: (prompt: string) => void;
 }
+
+/* ───────── Code Block ───────── */
 
 function CodeBlock({ code, language }: { code: string; language: string }) {
   return (
@@ -38,22 +46,79 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
   );
 }
 
+/* ───────── Chat Skeleton (boneyard-js fallback) ───────── */
+
+const ChatSkeleton: FC = () => {
+  const rows = Array.from({ length: 4 }, (_, i) => i);
+
+  return (
+    <div className="chat-window__skeleton">
+      <div className="chat-window__skeleton-stack">
+        {rows.map((i) => (
+          <div
+            key={i}
+            className={`chat-window__skeleton-row ${
+              i % 2 === 0
+                ? "chat-window__skeleton-row--assistant"
+                : "chat-window__skeleton-row--user"
+            }`}
+          >
+            {/* Avatar bone */}
+            {i % 2 === 0 && (
+              <div className="chat-window__skeleton-avatar" />
+            )}
+
+            {/* Bubble bones */}
+            <div
+              className={`chat-window__skeleton-bubble ${
+                i % 2 === 0
+                  ? "chat-window__skeleton-bubble--assistant"
+                  : "chat-window__skeleton-bubble--user"
+              }`}
+            >
+              {i % 2 === 0 ? (
+                <>
+                  <div className="chat-window__skeleton-bone chat-window__skeleton-bone--lg" />
+                  <div className="chat-window__skeleton-bone chat-window__skeleton-bone--md" />
+                  <div className="chat-window__skeleton-bone chat-window__skeleton-bone--sm" />
+                </>
+              ) : (
+                <div className="chat-window__skeleton-bone chat-window__skeleton-bone--user" />
+              )}
+            </div>
+
+            {/* User avatar bone (right side) */}
+            {i % 2 !== 0 && (
+              <div className="chat-window__skeleton-avatar" />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* ───────── Main Component ───────── */
+
 export default function ChatWindow({
   messages,
   isLoading,
+  isFetchingHistory,
   error,
   newSearchTerm,
   onSendHiddenMessage,
+  onQuickAction,
 }: ChatWindowProps) {
   const [selectedProduct, setSelectedProduct] = useState<{
     url: string;
     name: string;
   } | null>(null);
-  const bottomRef = useScrollToBottom(messages);
+  const safeMessages = messages ?? [];
+  const bottomRef = useScrollToBottom(safeMessages);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const prevMessageCountRef = useRef(messages.length);
+  const prevMessageCountRef = useRef(safeMessages.length);
 
-  const lastMessage = messages[messages.length - 1];
+  const lastMessage = safeMessages[safeMessages.length - 1];
   const hasProductCard =
     lastMessage?.role === "assistant" &&
     (lastMessage?.a2ui?.type === "a2ui_interactive_product" ||
@@ -72,238 +137,291 @@ export default function ChatWindow({
         });
       }
     }
-    prevMessageCountRef.current = messages.length;
-  }, [messages.length, hasProductCard]);
+    prevMessageCountRef.current = safeMessages.length;
+  }, [safeMessages.length, hasProductCard]);
+
+  const isEmpty = safeMessages.length === 0;
+
+  /*
+   * Strict rendering priority (evaluated top → bottom):
+   *   1. isFetchingHistory  → skeleton  (always wins, regardless of messages state)
+   *   2. has messages       → messages list
+   *   3. fallback           → empty welcome screen
+   */
+  const viewState = isFetchingHistory
+    ? "window-skeleton"
+    : !isEmpty
+      ? "window-messages"
+      : "window-empty";
 
   return (
     <>
       <div className="chat-window">
-        {/* Messages */}
-        <div className="chat-window__messages-scroll" ref={scrollContainerRef}>
-          <div className="chat-window__messages-stack">
-            {messages.map((message) => (
-              <motion.div
-                key={message.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-                className={`chat-window__message-row ${
-                  message.role === "user"
-                    ? "chat-window__message-row--user"
-                    : "chat-window__message-row--assistant"
-                }`}
+        <AnimatePresence mode="wait">
+          {viewState === "window-skeleton" && (
+            <motion.div
+              key="window-skeleton"
+              className="chat-window__messages-scroll"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.2 } }}
+            >
+              <Skeleton
+                loading
+                animate="shimmer"
+                color="#f0f0f5"
+                transition={300}
+                fallback={<ChatSkeleton />}
               >
-                {/* Avatar */}
-                {message.role === "assistant" ? (
-                  <div className="chat-window__avatar chat-window__avatar--assistant">
-                    <Sparkles className="chat-window__avatar-icon" />
-                  </div>
-                ) : (
-                  <div className="chat-window__avatar chat-window__avatar--user">
-                    <span className="chat-window__avatar-text">JD</span>
-                  </div>
-                )}
+                <div />
+              </Skeleton>
+            </motion.div>
+          )}
 
-                {/* Bubble */}
-                <div
-                  className={`chat-window__message-col ${
-                    message.role === "user"
-                      ? "chat-window__message-col--user"
-                      : "chat-window__message-col--assistant"
-                  }`}
-                >
-                  <div
-                    className={`chat-window__bubble ${
+          {viewState === "window-empty" && (
+            <motion.div
+              key="window-empty"
+              className="chat-window__empty-state"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.15 } }}
+            >
+              <NewChat onQuickAction={onQuickAction ?? (() => {})} />
+            </motion.div>
+          )}
+
+          {viewState === "window-messages" && (
+            <motion.div
+              key="window-messages"
+              className="chat-window__messages-scroll"
+              ref={scrollContainerRef}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.2 } }}
+            >
+              <div className="chat-window__messages-stack">
+                {safeMessages.map((message) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className={`chat-window__message-row ${
                       message.role === "user"
-                        ? "chat-window__bubble--user"
-                        : "chat-window__bubble--assistant"
+                        ? "chat-window__message-row--user"
+                        : "chat-window__message-row--assistant"
                     }`}
                   >
+                    {/* Avatar */}
                     {message.role === "assistant" ? (
-                      <>
-                        {!message.content &&
-                          message.a2ui?.type !== "a2ui_interactive_product" &&
-                          message.a2ui?.type !== "a2ui_questionnaire" &&
-                          !(
-                            message.seenProducts &&
-                            message.seenProducts.length > 0
-                          ) &&
-                          message.a2ui?.type === "a2ui_processing_status" && (
-                            <ProcessingStatus
-                              text={message.a2ui.data.statusText}
-                              percent={message.a2ui.data.progressPercent}
-                            />
-                          )}
-
-                        {!message.content &&
-                          message.a2ui?.type !== "a2ui_interactive_product" &&
-                          message.a2ui?.type !== "a2ui_questionnaire" &&
-                          message.a2ui?.type !== "a2ui_processing_status" &&
-                          !(
-                            message.seenProducts &&
-                            message.seenProducts.length > 0
-                          ) &&
-                          isLoading && (
-                            <ActivityMessage
-                              message={`Đang cập nhật tìm kiếm: ${newSearchTerm}`}
-                            />
-                          )}
-
-                        {message.content && (
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              pre: ({ children }) => <>{children}</>,
-                              p: ({ children }) => (
-                                <p className="chat-window__text-paragraph">
-                                  {children}
-                                </p>
-                              ),
-                              strong: ({ children }) => (
-                                <strong className="chat-window__text-strong">
-                                  {children}
-                                </strong>
-                              ),
-                              code: ({ className, children }) => {
-                                const language =
-                                  className?.replace("language-", "") || "code";
-                                const text = String(children).replace(
-                                  /\n$/,
-                                  "",
-                                );
-                                return className ? (
-                                  <CodeBlock code={text} language={language} />
-                                ) : (
-                                  <code className="chat-window__text-inline-code">
-                                    {text}
-                                  </code>
-                                );
-                              },
-                              a: ({ href, children }) => (
-                                <a
-                                  href={href}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  {children}
-                                </a>
-                              ),
-                              img: ({ src, alt }) => {
-                                if (!src) return null;
-                                return (
-                                  <div className="chat-window__image-container">
-                                    <div className="chat-window__image-grid">
-                                      <div className="chat-window__image-left" />
-
-                                      <img
-                                        className="chat-window__markdown-image"
-                                        src={src}
-                                        alt={alt}
-                                      />
-
-                                      <div className="chat-window__image-right">
-                                        {/* Nút chỉ hiện nếu có link ảnh */}
-                                        <button
-                                          type="button"
-                                          className="chat-window__tryon-btn"
-                                          onClick={() =>
-                                            setSelectedProduct({
-                                              url: src,
-                                              name: alt || "Sản phẩm",
-                                            })
-                                          }
-                                        >
-                                          ✨ Thử đồ với Bụt
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              },
-                            }}
-                          >
-                            {message.content}
-                          </ReactMarkdown>
-                        )}
-
-                        {(message.a2ui &&
-                          message.a2ui.type !== "a2ui_processing_status" &&
-                          message.a2ui.type !== "a2ui_done") ||
-                        (message.seenProducts &&
-                          message.seenProducts.length > 0) ? (
-                          <div className="chat-window__a2ui-block">
-                            <A2UIRenderer
-                              a2uiPayload={message.a2ui ?? null}
-                              seenProducts={message.seenProducts}
-                              onSendHiddenMessage={onSendHiddenMessage}
-                              isLoading={isLoading}
-                            />
-                          </div>
-                        ) : null}
-                      </>
+                      <div className="chat-window__avatar chat-window__avatar--assistant">
+                        <Sparkles className="chat-window__avatar-icon" />
+                      </div>
                     ) : (
-                      // Nếu là User -> Giữ nguyên ReactMarkdown như cũ
-                      message.content && (
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            pre: ({ children }) => <>{children}</>,
-                            p: ({ children }) => (
-                              <p className="chat-window__text-paragraph">
-                                {children}
-                              </p>
-                            ),
-                            strong: ({ children }) => (
-                              <strong className="chat-window__text-strong">
-                                {children}
-                              </strong>
-                            ),
-                            code: ({ className, children }) => {
-                              const language =
-                                className?.replace("language-", "") || "code";
-                              const text = String(children).replace(/\n$/, "");
-                              return className ? (
-                                <CodeBlock code={text} language={language} />
-                              ) : (
-                                <code className="chat-window__text-inline-code">
-                                  {text}
-                                </code>
-                              );
-                            },
-                          }}
-                        >
-                          {message.content}
-                        </ReactMarkdown>
-                      )
+                      <div className="chat-window__avatar chat-window__avatar--user">
+                        <span className="chat-window__avatar-text">JD</span>
+                      </div>
                     )}
-                  </div>
 
-                  <small className="chat-window__timestamp">
-                    {formatDateTime(message.createdAt)}
-                  </small>
+                    {/* Bubble */}
+                    <div
+                      className={`chat-window__message-col ${
+                        message.role === "user"
+                          ? "chat-window__message-col--user"
+                          : "chat-window__message-col--assistant"
+                      }`}
+                    >
+                      <div
+                        className={`chat-window__bubble ${
+                          message.role === "user"
+                            ? "chat-window__bubble--user"
+                            : "chat-window__bubble--assistant"
+                        }`}
+                      >
+                        {message.role === "assistant" ? (
+                          <>
+                            {!message.content &&
+                              message.a2ui?.type !== "a2ui_interactive_product" &&
+                              message.a2ui?.type !== "a2ui_questionnaire" &&
+                              !(
+                                message.seenProducts &&
+                                message.seenProducts.length > 0
+                              ) &&
+                              message.a2ui?.type === "a2ui_processing_status" && (
+                                <ProcessingStatus
+                                  text={message.a2ui.data.statusText}
+                                  percent={message.a2ui.data.progressPercent}
+                                />
+                              )}
 
-                  {/* Actions for assistant */}
-                  {message.role === "assistant" && (
-                    <div className="chat-window__assistant-actions">
-                      <button className="chat-window__assistant-action chat-window__assistant-action--copy">
-                        <Copy className="chat-window__assistant-action-icon" />
-                      </button>
-                      <button className="chat-window__assistant-action chat-window__assistant-action--upvote">
-                        <ThumbsUp className="chat-window__assistant-action-icon" />
-                      </button>
-                      <button className="chat-window__assistant-action chat-window__assistant-action--downvote">
-                        <ThumbsDown className="chat-window__assistant-action-icon" />
-                      </button>
+                            {!message.content &&
+                              message.a2ui?.type !== "a2ui_interactive_product" &&
+                              message.a2ui?.type !== "a2ui_questionnaire" &&
+                              message.a2ui?.type !== "a2ui_processing_status" &&
+                              !(
+                                message.seenProducts &&
+                                message.seenProducts.length > 0
+                              ) &&
+                              isLoading && (
+                                <ActivityMessage
+                                  message={`Đang cập nhật tìm kiếm: ${newSearchTerm}`}
+                                />
+                              )}
+
+                            {message.content && (
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                  pre: ({ children }) => <>{children}</>,
+                                  p: ({ children }) => (
+                                    <p className="chat-window__text-paragraph">
+                                      {children}
+                                    </p>
+                                  ),
+                                  strong: ({ children }) => (
+                                    <strong className="chat-window__text-strong">
+                                      {children}
+                                    </strong>
+                                  ),
+                                  code: ({ className, children }) => {
+                                    const language =
+                                      className?.replace("language-", "") || "code";
+                                    const text = String(children).replace(
+                                      /\n$/,
+                                      "",
+                                    );
+                                    return className ? (
+                                      <CodeBlock code={text} language={language} />
+                                    ) : (
+                                      <code className="chat-window__text-inline-code">
+                                        {text}
+                                      </code>
+                                    );
+                                  },
+                                  a: ({ href, children }) => (
+                                    <a
+                                      href={href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      {children}
+                                    </a>
+                                  ),
+                                  img: ({ src, alt }) => {
+                                    if (!src) return null;
+                                    return (
+                                      <div className="chat-window__image-container">
+                                        <div className="chat-window__image-grid">
+                                          <div className="chat-window__image-left" />
+
+                                          <img
+                                            className="chat-window__markdown-image"
+                                            src={src}
+                                            alt={alt}
+                                          />
+
+                                          <div className="chat-window__image-right">
+                                            <button
+                                              type="button"
+                                              className="chat-window__tryon-btn"
+                                              onClick={() =>
+                                                setSelectedProduct({
+                                                  url: src,
+                                                  name: alt || "Sản phẩm",
+                                                })
+                                              }
+                                            >
+                                              ✨ Thử đồ với Bụt
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  },
+                                }}
+                              >
+                                {message.content}
+                              </ReactMarkdown>
+                            )}
+
+                            {(message.a2ui &&
+                              message.a2ui.type !== "a2ui_processing_status" &&
+                              message.a2ui.type !== "a2ui_done") ||
+                            (message.seenProducts &&
+                              message.seenProducts.length > 0) ? (
+                              <div className="chat-window__a2ui-block">
+                                <A2UIRenderer
+                                  a2uiPayload={message.a2ui ?? null}
+                                  seenProducts={message.seenProducts}
+                                  onSendHiddenMessage={onSendHiddenMessage}
+                                  isLoading={isLoading}
+                                />
+                              </div>
+                            ) : null}
+                          </>
+                        ) : (
+                          message.content && (
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                pre: ({ children }) => <>{children}</>,
+                                p: ({ children }) => (
+                                  <p className="chat-window__text-paragraph">
+                                    {children}
+                                  </p>
+                                ),
+                                strong: ({ children }) => (
+                                  <strong className="chat-window__text-strong">
+                                    {children}
+                                  </strong>
+                                ),
+                                code: ({ className, children }) => {
+                                  const language =
+                                    className?.replace("language-", "") || "code";
+                                  const text = String(children).replace(/\n$/, "");
+                                  return className ? (
+                                    <CodeBlock code={text} language={language} />
+                                  ) : (
+                                    <code className="chat-window__text-inline-code">
+                                      {text}
+                                    </code>
+                                  );
+                                },
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          )
+                        )}
+                      </div>
+
+                      <small className="chat-window__timestamp">
+                        {formatDateTime(message.createdAt)}
+                      </small>
+
+                      {message.role === "assistant" && (
+                        <div className="chat-window__assistant-actions">
+                          <button className="chat-window__assistant-action chat-window__assistant-action--copy">
+                            <Copy className="chat-window__assistant-action-icon" />
+                          </button>
+                          <button className="chat-window__assistant-action chat-window__assistant-action--upvote">
+                            <ThumbsUp className="chat-window__assistant-action-icon" />
+                          </button>
+                          <button className="chat-window__assistant-action chat-window__assistant-action--downvote">
+                            <ThumbsDown className="chat-window__assistant-action-icon" />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
+                  </motion.div>
+                ))}
 
-            {error && <p className="chat-window__error">{error}</p>}
-            <div ref={bottomRef} />
-          </div>
-        </div>
+                {error && <p className="chat-window__error">{error}</p>}
+                <div ref={bottomRef} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Modal hiện lên khi selectedProduct có dữ liệu */}
@@ -311,7 +429,7 @@ export default function ChatWindow({
         <TryOnModal
           open={!!selectedProduct}
           onOpenChange={(open) => {
-            if (!open) setSelectedProduct(null); // Reset state khi đóng modal
+            if (!open) setSelectedProduct(null);
           }}
           productImageUrl={selectedProduct.url}
           productName={selectedProduct.name}

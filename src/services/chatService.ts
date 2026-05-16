@@ -1,23 +1,7 @@
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import type { ChatRequest, ChatStreamChunk } from "../types/chat.types";
 import { apiConfig } from "./api";
-import { supabase } from "./supabase";
-
-// Lấy headers mặc định, kèm JWT nếu người dùng đã đăng nhập
-const getAuthHeaders = async (): Promise<Record<string, string>> => {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    headers["Authorization"] = `Bearer ${session.access_token}`;
-  }
-
-  return headers;
-};
+import axiosInstance, { getAuthHeaders } from "./axiosInstance";
 
 export interface StreamCallbacks {
   onChunk: (chunk: ChatStreamChunk) => void;
@@ -86,18 +70,10 @@ export const streamChat = async (
 };
 
 export const fetchChatHistory = async (sessionId: string) => {
-  const headers = await getAuthHeaders();
-  const response = await fetch(
-    `${apiConfig.baseUrl}/chat/history/${sessionId}`,
-    {
-      method: "GET",
-      headers,
-    },
-  );
-
-  if (!response.ok) {
+  try {
+    const response = await axiosInstance.get(`/chat/history/${sessionId}`);
+    return response.data;
+  } catch {
     throw new Error("Không thể tải lịch sử trò chuyện");
   }
-
-  return response.json();
 };

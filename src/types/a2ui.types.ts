@@ -4,6 +4,8 @@ export type Role = "user" | "assistant" | "system";
 
 export interface A2UISessionInitData{
   sessionId: string;
+  title?: string;
+  createdAt?: string;
 }
 
 // --- 1. DATA CHO FORM KHẢO SÁT (Questionnaire) ---

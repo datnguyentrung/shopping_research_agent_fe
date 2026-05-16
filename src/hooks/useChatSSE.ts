@@ -1,4 +1,6 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { fetchChatHistory, streamChat } from "@/services/chatService";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { A2UIPayload } from "../types/a2ui.types";
 import type {
@@ -7,6 +9,7 @@ import type {
   ChatStreamChunk,
 } from "../types/chat.types";
 import { normalizeA2UIPayload } from "../utils/a2ui";
+import { saveGuestChat } from "../utils/guestChatStorage";
 
 const createMessage = (
   role: ChatMessage["role"],
@@ -22,16 +25,29 @@ export const useChatSSE = (
   initialSessionId?: string,
   onSessionCreated?: (id: string) => void,
 ) => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingHistory, setIsFetchingHistory] = useState(false);
+  const [isFetchingHistory, setIsFetchingHistory] = useState(
+    () => !!initialSessionId,
+  );
   const [error, setError] = useState<string | null>(null);
   const sessionIdRef = useRef<string | undefined>(initialSessionId);
 
-  // Nếu initialSessionId đổi (khách bấm sang chat khác trên Sidebar), cập nhật lại ref
+  // Khi initialSessionId thay đổi:
+  // - Có giá trị mới → cập nhật ref để chat đúng luồng
+  // - Thành undefined (người dùng bấm "New Chat") → reset toàn bộ state
   useEffect(() => {
     if (initialSessionId) {
       sessionIdRef.current = initialSessionId;
+    } else {
+      // Chỉ reset khi đang ở trong 1 phiên chat, không reset lần đầu mount
+      if (sessionIdRef.current) {
+        sessionIdRef.current = undefined;
+        setMessages([]);
+        setError(null);
+      }
     }
   }, [initialSessionId]);
 
@@ -143,10 +159,24 @@ export const useChatSSE = (
               if (chunk.type === "a2ui") {
                 const rawPayload = (chunk.a2ui ?? chunk.a2Ui) as A2UIPayload;
                 if (rawPayload && rawPayload.type === "a2ui_session_init") {
-                  const newId = rawPayload.data?.sessionId;
+                  const { sessionId: newId, title, createdAt } = rawPayload.data;
                   if (newId) {
                     sessionIdRef.current = newId;
                     if (onSessionCreated) onSessionCreated(newId);
+
+                    // Lưu chat vào localStorage cho Guest (chưa đăng nhập)
+                    if (!user) {
+                      saveGuestChat({
+                        id: newId,
+                        user_id: "guest",
+                        title: title ?? "New Chat",
+                        createdAt: createdAt ?? new Date().toISOString(),
+                        updatedAt: null,
+                      });
+                    } else {
+                      // Đã đăng nhập → invalidate query để Sidebar cập nhật
+                      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+                    }
                   }
                   return; // Không đẩy chunk metadata này vào giao diện tin nhắn
                 }
@@ -242,6 +272,7 @@ export const useChatSSE = (
   return {
     messages,
     isLoading: isLoading || isFetchingHistory, // Gộp chung trạng thái loading
+    isFetchingHistory,
     error,
     sessionId: sessionIdRef.current, // Trả ra sessionId hiện tại
     loadHistory, // Trả ra hàm load

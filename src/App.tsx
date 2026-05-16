@@ -15,7 +15,7 @@ function ChatSession() {
     (newId: string) => {
       if (!sessionId) {
         isLocalNavRef.current = true;
-        navigate(`/c/${newId}`, { replace: true });
+        navigate(`/app/${newId}`, { replace: true });
       }
     },
     [navigate, sessionId],
@@ -23,6 +23,7 @@ function ChatSession() {
   const {
     messages,
     isLoading,
+    isFetchingHistory,
     error,
     loadHistory,
     sendMessage,
@@ -61,10 +62,12 @@ function ChatSession() {
         <ChatWindow
           messages={messages}
           isLoading={isLoading}
+          isFetchingHistory={isFetchingHistory}
           newSearchTerm={newSearchTerm}
           onReset={handleResetChat}
           onSendHiddenMessage={handleSendHiddenMessage}
           error={error}
+          onQuickAction={handleSendMessage}
         />
         <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
       </div>
@@ -78,8 +81,8 @@ export default function App() {
       {/* Trang chủ sẽ dùng chung ChatSession nhưng không có ID ban đầu */}
       <Route path="/" element={<ChatSession />} />
 
-      {/* Bắt URL có dạng /c/xxx-yyy-zzz */}
-      <Route path="/c/:sessionId" element={<ChatSession />} />
+      {/* Bắt URL có dạng /app/xxx-yyy-zzz */}
+      <Route path="/app/:sessionId" element={<ChatSession />} />
     </Routes>
   );
 }
