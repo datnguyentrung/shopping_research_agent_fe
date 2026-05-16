@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "chat-sdk": {
+      "source": "vercel/chat",
+      "sourceType": "github",
+      "skillPath": "skills/chat/SKILL.md",
+      "computedHash": "c7277fe8be96a8a1eea9e2cc373ebfed21b79e666565e587562dcdfbae65cced"
+    },
+    "chatgpt-app-builder": {
+      "source": "mcp-use/mcp-use",
+      "sourceType": "github",
+      "skillPath": "skills/chatgpt-app-builder/SKILL.md",
+      "computedHash": "a81e6de75682a8c02750ffd0126f2bb46708ffb6f4ab285246af18de67c9f1b5"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
+    }
+  }
+}
