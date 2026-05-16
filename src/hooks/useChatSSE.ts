@@ -1,5 +1,6 @@
 import { fetchChatHistory, streamChat } from "@/services/chatService";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { A2UIPayload } from "../types/a2ui.types";
 import type {
   ChatMessage,
   ChatRequest,
@@ -17,12 +18,15 @@ const createMessage = (
   createdAt: new Date().toISOString(),
 });
 
-export const useChatSSE = (initialSessionId?: string) => {
+export const useChatSSE = (
+  initialSessionId?: string,
+  onSessionCreated?: (id: string) => void,
+) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const sessionIdRef = useRef<string>(initialSessionId || crypto.randomUUID());
+  const sessionIdRef = useRef<string | undefined>(initialSessionId);
 
   // Nếu initialSessionId đổi (khách bấm sang chat khác trên Sidebar), cập nhật lại ref
   useEffect(() => {
@@ -136,6 +140,17 @@ export const useChatSSE = (initialSessionId?: string) => {
           { ...payload, sessionId: sessionIdRef.current },
           {
             onChunk: (chunk) => {
+              if (chunk.type === "a2ui") {
+                const rawPayload = (chunk.a2ui ?? chunk.a2Ui) as A2UIPayload;
+                if (rawPayload && rawPayload.type === "a2ui_session_init") {
+                  const newId = rawPayload.data?.sessionId;
+                  if (newId) {
+                    sessionIdRef.current = newId;
+                    if (onSessionCreated) onSessionCreated(newId);
+                  }
+                  return; // Không đẩy chunk metadata này vào giao diện tin nhắn
+                }
+              }
               applyChunkToAssistant(assistantMessageId, chunk);
             },
             onDone: () => {
@@ -186,8 +201,9 @@ export const useChatSSE = (initialSessionId?: string) => {
 
   const resetChat = useCallback(() => {
     // Tạo 1 Session ID mới hoàn toàn
-    sessionIdRef.current = crypto.randomUUID();
     // Xóa lịch sử UI
+    sessionIdRef.current = undefined;
+
     setMessages([]);
     setError(null);
   }, []);
@@ -233,4 +249,4 @@ export const useChatSSE = (initialSessionId?: string) => {
     sendHiddenMessage,
     resetChat,
   };
-};;
+};

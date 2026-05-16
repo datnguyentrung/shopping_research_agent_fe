@@ -1,19 +1,25 @@
 import { ChatInput, ChatWindow, Sidebar } from "@/components";
 import { useChatSSE } from "@/hooks/useChatSSE";
-import { useState, useEffect } from "react";
-import {
-  Routes,
-  Route,
-  useNavigate,
-  useParams,
-  Navigate,
-} from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Route, Routes, useNavigate, useParams } from "react-router-dom";
 import "./App.scss";
 
 // Component chứa logic chính của một phiên chat
 function ChatSession() {
   const { sessionId } = useParams<{ sessionId: string }>(); // Bắt ID từ URL
   const navigate = useNavigate();
+  const isLocalNavRef = useRef(false); // Ref để tránh load lại lịch sử khi vừa tạo mới phiên
+
+  // Hàm này được gọi bởi hook khi Backend trả về session id mới
+  const handleSessionCreated = useCallback(
+    (newId: string) => {
+      if (!sessionId) {
+        isLocalNavRef.current = true;
+        navigate(`/c/${newId}`, { replace: true });
+      }
+    },
+    [navigate, sessionId],
+  );
   const {
     messages,
     isLoading,
@@ -21,15 +27,17 @@ function ChatSession() {
     loadHistory,
     sendMessage,
     sendHiddenMessage,
-  } = useChatSSE(sessionId); // Truyền ID vào hook
+  } = useChatSSE(sessionId, handleSessionCreated);
 
   const [newSearchTerm, setNewSearchTerm] = useState("");
 
   // Khi URL thay đổi (có sessionId), tự động load lịch sử từ Backend
+  // Nếu có session ID từ URL và không phải do ta vừa đổi route nội bộ -> Fetch lịch sử
   useEffect(() => {
-    if (sessionId) {
+    if (sessionId && !isLocalNavRef.current) {
       loadHistory(sessionId);
     }
+    isLocalNavRef.current = false; // reset
   }, [sessionId, loadHistory]);
 
   const handleSendMessage = async (content: string) => {
@@ -64,18 +72,11 @@ function ChatSession() {
   );
 }
 
-// Route Component để tạo phiên mới
-function NewChatRedirect() {
-  // Tạo ID mới và tự động redirect sang link /c/{id}
-  const newId = crypto.randomUUID();
-  return <Navigate to={`/c/${newId}`} replace />;
-}
-
 export default function App() {
   return (
     <Routes>
-      {/* Khi người dùng vào trang chủ, tạo Session mới và chuyển hướng */}
-      <Route path="/" element={<NewChatRedirect />} />
+      {/* Trang chủ sẽ dùng chung ChatSession nhưng không có ID ban đầu */}
+      <Route path="/" element={<ChatSession />} />
 
       {/* Bắt URL có dạng /c/xxx-yyy-zzz */}
       <Route path="/c/:sessionId" element={<ChatSession />} />

@@ -3,6 +3,7 @@ import type {
   A2UIProcessingData,
   A2UIProductData,
   A2UIQuestionnaireData,
+  A2UISessionInitData,
 } from "@/types/a2ui.types";
 import type { CapturedData } from "@/types/product.types";
 
@@ -134,6 +135,10 @@ export const normalizeA2UIPayload = (payload: unknown): A2UIPayload | null => {
     case "a2ui_processing_status": {
       const data = normalizeProcessingData(payload.data);
       return data ? { type: payload.type, data } : null;
+    }
+
+    case "a2ui_session_init": {
+      return {type:payload.type, data: payload.data as A2UISessionInitData}
     }
 
     case "a2ui_done": {
