@@ -1,6 +1,23 @@
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 import type { ChatRequest, ChatStreamChunk } from "../types/chat.types";
 import { apiConfig } from "./api";
+import { supabase } from "./supabase";
+
+// Lấy headers mặc định, kèm JWT nếu người dùng đã đăng nhập
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    headers["Authorization"] = `Bearer ${session.access_token}`;
+  }
+
+  return headers;
+};
 
 export interface StreamCallbacks {
   onChunk: (chunk: ChatStreamChunk) => void;
@@ -13,13 +30,12 @@ export const streamChat = async (
   callbacks: StreamCallbacks,
 ): Promise<void> => {
   const ctrl = new AbortController();
+  const headers = await getAuthHeaders();
   await fetchEventSource(`${apiConfig.baseUrl}/chat`, {
     method: "POST",
     // 👇 THÊM DÒNG NÀY ĐỂ TẮT TÍNH NĂNG TỰ NGẮT KHI CHUYỂN TAB
     openWhenHidden: true,
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(payload),
     signal: ctrl.signal,
     onmessage(event) {
@@ -70,13 +86,12 @@ export const streamChat = async (
 };
 
 export const fetchChatHistory = async (sessionId: string) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(
     `${apiConfig.baseUrl}/chat/history/${sessionId}`,
     {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     },
   );
 
