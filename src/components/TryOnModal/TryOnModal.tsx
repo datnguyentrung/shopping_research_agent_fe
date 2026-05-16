@@ -1,9 +1,35 @@
+import {
+  AlertCircle,
+  Info,
+  Loader2,
+  Sparkles,
+  UploadCloud,
+  X,
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+
+// Thay đổi import apiConfig và validatePose tùy thuộc vào đường dẫn dự án của bạn
 import { apiConfig } from "@/services/api";
 import { validatePose } from "@/utils/validatePose";
-import { Sparkles, Upload } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Dialog, DialogContent } from "../ui/dialog";
-import "./TryOnModal.scss";
+
+const PRESET_MODELS = [
+  {
+    id: "m1",
+    src: "/vto-personas/dat1.jpg",
+    label: "Mẫu Á Châu",
+  },
+  {
+    id: "m2",
+    src: "/vto-personas/dat2.jpg",
+    label: "Mẫu Châu Âu",
+  },
+  {
+    id: "m3",
+    src: "/vto-personas/dat3.jpg",
+    label: "Mẫu Da Màu",
+  },
+];
 
 type VtoStatus =
   | "idle"
@@ -25,6 +51,7 @@ type VtoWsMessage = {
 
 const LOCALSTORAGE_KEY = "but_user_photo";
 
+// --- Helper Functions ---
 function toOrigin(baseUrl: string) {
   try {
     return new URL(baseUrl).origin;
@@ -71,6 +98,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+// --- Component ---
 interface TryOnModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -82,30 +110,12 @@ export default function TryOnModal({
   open,
   onOpenChange,
   productImageUrl,
-  productName,
+  productName = "Sản phẩm đang chọn",
 }: TryOnModalProps) {
-  const personas = useMemo(
-    () => [
-      {
-        id: "m-slim",
-        label: "Nam - gọn",
-        src: "/vto-personas/dat1.jpg",
-      },
-      {
-        id: "m-wide",
-        label: "Nam - to",
-        src: "/vto-personas/dat2.jpg",
-      },
-      {
-        id: "f-slim",
-        label: "Nữ - gọn",
-        src: "/vto-personas/dat3.jpg",
-      },
-    ],
-    [],
-  );
+  // State quản lý tab (thay vì string đơn thuần, giờ gắn với logic user/persona)
+  const [activeTab, setActiveTab] = useState<"preset" | "upload">("preset");
 
-  const [tab, setTab] = useState<"persona" | "user">("persona");
+  // Các state từ file Logic
   const [selected, setSelected] = useState<PersonSource | null>(null);
   const [savedUserPhoto, setSavedUserPhoto] = useState<string | null>(null);
   const [status, setStatus] = useState<VtoStatus>("idle");
@@ -113,34 +123,38 @@ export default function TryOnModal({
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Refs
   const wsRef = useRef<WebSocket | null>(null);
   const progressTimerRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Khởi tạo Modal
   useEffect(() => {
     if (!open) return;
 
     const stored = localStorage.getItem(LOCALSTORAGE_KEY);
     setSavedUserPhoto(stored);
 
-    // Default selection: prefer saved user photo, else persona #1
+    // Default selection
     if (stored) {
       setSelected({ kind: "user", src: stored, label: "Ảnh đã lưu" });
-      setTab("user");
+      setActiveTab("upload");
     } else {
       setSelected({
         kind: "persona",
-        src: personas[0].src,
-        label: personas[0].label,
+        src: PRESET_MODELS[0].src,
+        label: PRESET_MODELS[0].label,
       });
-      setTab("persona");
+      setActiveTab("preset");
     }
+
     setStatus("idle");
     setProgress(0);
     setResultUrl(null);
     setError(null);
-  }, [open, personas]);
+  }, [open]);
 
+  // Dọn dẹp Websocket khi unmount
   useEffect(() => {
     return () => {
       wsRef.current?.close();
@@ -149,6 +163,7 @@ export default function TryOnModal({
     };
   }, []);
 
+  // Logic Process Bar ảo trong lúc đợi Socket
   const startFakeProgress = () => {
     setProgress(8);
     if (progressTimerRef.current)
@@ -170,6 +185,7 @@ export default function TryOnModal({
     if (typeof finalValue === "number") setProgress(finalValue);
   };
 
+  // Logic Upload Ảnh
   const handleUploadClick = () => fileInputRef.current?.click();
 
   const handleUserFile = async (file: File) => {
@@ -177,7 +193,7 @@ export default function TryOnModal({
     localStorage.setItem(LOCALSTORAGE_KEY, dataUrl);
     setSavedUserPhoto(dataUrl);
     setSelected({ kind: "user", src: dataUrl, label: "Ảnh của bạn" });
-    setTab("user");
+    setActiveTab("upload");
     setError(null);
   };
 
@@ -185,7 +201,6 @@ export default function TryOnModal({
     if (source.kind === "persona") {
       return urlToFile(source.src, "persona.png");
     }
-
     const blob = dataUrlToBlob(source.src);
     const ext = blob.type.includes("jpeg") ? "jpg" : "png";
     return new File([blob], `but-user.${ext}`, {
@@ -193,7 +208,8 @@ export default function TryOnModal({
     });
   };
 
-  const handleVTO = async () => {
+  // Nút Bắt Đầu
+  const handleStart = async () => {
     if (!selected) return;
 
     setError(null);
@@ -219,6 +235,7 @@ export default function TryOnModal({
       const form = new FormData();
       form.append("person_image_file", personFile);
       form.append("product_file_path", productImageUrl);
+      form.append("product_name", productName);
 
       const backendOrigin = toOrigin(apiConfig.baseUrl);
       const response = await fetch(`${backendOrigin}/fire`, {
@@ -286,224 +303,416 @@ export default function TryOnModal({
     }
   };
 
-  const isBusy =
+  // Trạng thái Render
+  const isProcessing =
     status === "validating" || status === "uploading" || status === "pending";
-  const canStart = Boolean(selected) && !isBusy;
+  const resultReady = status === "completed" && resultUrl !== null;
+  const isButtonDisabled = !selected || isProcessing;
 
-  const showLoading =
-    status === "pending" || status === "uploading" || status === "validating";
+  let processingText = "Bụt đang chuẩn bị...";
+  if (status === "validating") processingText = "Đang kiểm tra vóc dáng...";
+  if (status === "uploading") processingText = "Đang tải ảnh lên hệ thống...";
+  if (status === "pending") processingText = "Bụt đang cân chỉnh trang phục...";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="tryon-modal">
-        <div className="tryon-modal__header">
-          <div className="tryon-modal__title-row">
-            <span className="tryon-modal__sparkle">
-              <Sparkles className="tryon-modal__sparkle-icon" />
-            </span>
-            <h2 className="tryon-modal__title">✨ Thử đồ với Bụt</h2>
-          </div>
-          <p className="tryon-modal__desc">
-            Chọn ảnh mẫu hoặc ảnh của bạn, rồi để Bụt may đo.
-          </p>
-        </div>
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-12">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => !isProcessing && onOpenChange(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          />
 
-        <div className="tryon-modal__tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "persona"}
-            className={`tryon-modal__tab ${
-              tab === "persona" ? "tryon-modal__tab--active" : ""
-            }`}
-            onClick={() => setTab("persona")}
+          {/* Modal Container */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative w-full max-w-6xl h-[85vh] max-h-[800px] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row z-10"
           >
-            Ảnh mẫu
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "user"}
-            className={`tryon-modal__tab ${
-              tab === "user" ? "tryon-modal__tab--active" : ""
-            }`}
-            onClick={() => setTab("user")}
-          >
-            Ảnh của bạn
-          </button>
-        </div>
+            {/* Close Button */}
+            {!isProcessing && (
+              <button
+                onClick={() => onOpenChange(false)}
+                className="absolute top-4 right-4 z-20 p-2 bg-white/80 backdrop-blur rounded-full text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 shadow-sm transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
 
-        <div className="tryon-modal__body">
-          {tab === "persona" && (
-            <div role="tabpanel">
-              <div className="tryon-modal__persona-grid">
-                {personas.map((p) => {
-                  const isSelected =
-                    selected?.kind === "persona" && selected.src === p.src;
-                  return (
+            {/* Left Panel: Configuration */}
+            <div className="w-full lg:w-[45%] h-[40vh] lg:h-full flex flex-col border-b lg:border-b-0 lg:border-r border-neutral-200 bg-neutral-50 overflow-y-auto custom-scrollbar">
+              {/* Header */}
+              <div className="p-6 pb-4 border-b border-neutral-200 bg-white sticky top-0 z-10">
+                <div className="flex items-center gap-2">
+                  <div className="bg-indigo-100 p-2 rounded-lg">
+                    <Sparkles className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <h2 className="text-xl font-bold text-neutral-800">
+                    Thử đồ với Bụt
+                  </h2>
+                </div>
+                <p className="text-sm text-neutral-500 mt-1 ml-11">
+                  Trải nghiệm ướm thử trang phục chân thực.
+                </p>
+              </div>
+
+              <div className="p-6 flex-1 flex flex-col gap-8">
+                {/* Section 1: Model Selection */}
+                <section>
+                  <h3 className="text-base font-semibold text-neutral-800 mb-4 flex items-center gap-2">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-sm">
+                      1
+                    </span>
+                    Chọn Người Mẫu
+                  </h3>
+
+                  {/* Segmented Control */}
+                  <div className="flex p-1 bg-neutral-200/60 rounded-xl mb-4 relative">
                     <button
-                      key={p.id}
-                      type="button"
-                      className={`tryon-modal__persona ${
-                        isSelected ? "tryon-modal__persona--selected" : ""
-                      }`}
                       onClick={() => {
+                        setActiveTab("preset");
+                        // Tự động select mẫu đầu tiên nếu chuyển qua tab này
                         setSelected({
                           kind: "persona",
-                          src: p.src,
-                          label: p.label,
+                          src: PRESET_MODELS[0].src,
+                          label: PRESET_MODELS[0].label,
                         });
                         setError(null);
                       }}
+                      className={`flex-1 py-2 text-sm font-medium rounded-lg z-10 transition-colors ${activeTab === "preset" ? "text-neutral-900" : "text-neutral-500 hover:text-neutral-700"}`}
                     >
-                      <img
-                        className="tryon-modal__persona-img"
-                        src={p.src}
-                        alt={p.label}
-                      />
-                      <div className="tryon-modal__persona-label">
-                        {p.label}
-                      </div>
+                      Ảnh Mẫu Có Sẵn
                     </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                    <button
+                      onClick={() => {
+                        setActiveTab("upload");
+                        if (savedUserPhoto) {
+                          setSelected({
+                            kind: "user",
+                            src: savedUserPhoto,
+                            label: "Ảnh của bạn",
+                          });
+                        }
+                        setError(null);
+                      }}
+                      className={`flex-1 py-2 text-sm font-medium rounded-lg z-10 transition-colors ${activeTab === "upload" ? "text-neutral-900" : "text-neutral-500 hover:text-neutral-700"}`}
+                    >
+                      Tải Ảnh Của Bạn
+                    </button>
+                    {/* Active Background Indicator */}
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-lg shadow-sm"
+                      initial={false}
+                      animate={{ x: activeTab === "preset" ? 0 : "100%" }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                      }}
+                    />
+                  </div>
 
-          {tab === "user" && (
-            <div role="tabpanel">
-              <div className="tryon-modal__upload">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="tryon-modal__file"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void handleUserFile(file);
-                  }}
-                />
+                  {/* Tab Content */}
+                  <div className="min-h-[160px]">
+                    <AnimatePresence mode="wait">
+                      {activeTab === "preset" ? (
+                        <motion.div
+                          key="preset"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+                        >
+                          {PRESET_MODELS.map((model) => (
+                            <button
+                              key={model.id}
+                              onClick={() => {
+                                setSelected({
+                                  kind: "persona",
+                                  src: model.src,
+                                  label: model.label,
+                                });
+                                setError(null);
+                              }}
+                              className={`relative aspect-[3/4] rounded-xl overflow-hidden group border-2 transition-all ${
+                                selected?.kind === "persona" &&
+                                selected.src === model.src
+                                  ? "border-indigo-600 shadow-md ring-2 ring-indigo-200"
+                                  : "border-transparent hover:border-neutral-300"
+                              }`}
+                            >
+                              <img
+                                src={model.src}
+                                alt={model.label}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                                <span className="text-white text-xs font-medium">
+                                  {model.label}
+                                </span>
+                              </div>
+                              {selected?.kind === "persona" &&
+                                selected.src === model.src && (
+                                  <div className="absolute top-2 right-2 bg-indigo-600 rounded-full p-0.5">
+                                    <svg
+                                      className="w-3 h-3 text-white"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={3}
+                                        d="M5 13l4 4L19 7"
+                                      />
+                                    </svg>
+                                  </div>
+                                )}
+                            </button>
+                          ))}
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="upload"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="w-full"
+                        >
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) void handleUserFile(file);
+                            }}
+                          />
+
+                          {savedUserPhoto ? (
+                            <div className="flex gap-4 p-4 border border-indigo-100 bg-indigo-50/50 rounded-xl items-center">
+                              <div className="w-20 h-24 rounded-lg overflow-hidden border border-neutral-200 shrink-0">
+                                <img
+                                  src={savedUserPhoto}
+                                  alt="User"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-sm font-semibold text-neutral-800 mb-1">
+                                  Ảnh của bạn
+                                </h4>
+                                <span className="inline-block px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full font-medium mb-3">
+                                  Đã lưu
+                                </span>
+                                <button
+                                  onClick={handleUploadClick}
+                                  className="text-sm text-indigo-600 font-medium hover:text-indigo-800 flex items-center gap-1.5 transition-colors"
+                                >
+                                  <UploadCloud className="w-4 h-4" /> Tải ảnh
+                                  khác
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={handleUploadClick}
+                              className="border-2 border-dashed border-neutral-300 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-white hover:bg-neutral-50 transition-colors cursor-pointer group"
+                            >
+                              <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                <UploadCloud className="w-6 h-6 text-indigo-500" />
+                              </div>
+                              <h4 className="font-medium text-neutral-800 mb-1">
+                                Kéo thả hoặc Click
+                              </h4>
+                              <p className="text-sm text-neutral-500 mb-4">
+                                để tải ảnh vóc dáng của bạn lên
+                              </p>
+                              <button className="px-4 py-2 bg-white border border-neutral-200 shadow-sm rounded-lg text-sm font-medium hover:bg-neutral-50 transition-colors">
+                                Tải ảnh lên
+                              </button>
+                            </div>
+                          )}
+
+                          <div className="mt-3 flex items-start gap-2 text-xs text-neutral-500 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                            <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                            <p>
+                              Để kết quả tốt nhất: Ảnh rõ nét, đủ ánh sáng, chụp
+                              thẳng toàn thân, không bị che khuất.
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </section>
+
+                {/* Section 2: Product */}
+                <section>
+                  <h3 className="text-base font-semibold text-neutral-800 mb-4 flex items-center gap-2">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-sm">
+                      2
+                    </span>
+                    Sản Phẩm
+                  </h3>
+                  <div className="flex items-center gap-4 bg-white p-3 rounded-xl border border-neutral-200 shadow-sm">
+                    <div className="w-16 h-20 rounded-lg overflow-hidden shrink-0 bg-neutral-100">
+                      <img
+                        src={productImageUrl}
+                        alt="Product"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-neutral-800 text-sm line-clamp-1">
+                        {productName}
+                      </h4>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        Sẽ được tự động cân chỉnh vừa vặn với người mẫu
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              {/* Action Area & Errors */}
+              <div className="p-6 border-t border-neutral-200 bg-white sticky bottom-0">
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 flex items-start gap-2 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100"
+                  >
+                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                    <p>{error}</p>
+                  </motion.div>
+                )}
 
                 <button
-                  type="button"
-                  className="tryon-modal__btn tryon-modal__btn--outline"
-                  onClick={handleUploadClick}
-                  disabled={isBusy}
+                  onClick={handleStart}
+                  disabled={isButtonDisabled}
+                  className={`w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
+                    isButtonDisabled
+                      ? "bg-neutral-200 text-neutral-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md hover:shadow-lg hover:from-indigo-600 hover:to-purple-700 transform hover:-translate-y-0.5"
+                  }`}
                 >
-                  <Upload className="tryon-modal__btn-icon" />
-                  Tải ảnh mới
-                </button>
-
-                {savedUserPhoto && (
-                  <button
-                    type="button"
-                    className="tryon-modal__btn tryon-modal__btn--secondary"
-                    onClick={() => {
-                      setSelected({
-                        kind: "user",
-                        src: savedUserPhoto,
-                        label: "Ảnh đã lưu",
-                      });
-                      setError(null);
-                    }}
-                    disabled={isBusy}
-                  >
-                    Dùng ảnh đã lưu
-                  </button>
-                )}
-              </div>
-
-              {savedUserPhoto && (
-                <div className={'tryon-modal__user-preview'}>
-                  <img
-                    className={'tryon-modal__user-preview-img'}
-                    src={savedUserPhoto}
-                    alt={'Ảnh của bạn'}
+                  <Sparkles
+                    className={`w-5 h-5 ${isButtonDisabled ? "opacity-50" : "animate-pulse"}`}
                   />
-                  <div className={'tryon-modal__user-preview-info'}>
-                    <span className={'tryon-modal__user-preview-label'}>
-                      Ảnh của bạn
-                    </span>
-                    <span className={'tryon-modal__user-preview-status'}>
-                      Sẽ được dùng để thử đồ
-                    </span>
-                    <span className={'tryon-modal__user-preview-badge'}>
-                      Đã lưu
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {showLoading && (
-            <div className="tryon-modal__loading" aria-live="polite">
-              <div className="tryon-modal__loading-top">
-                <p className="tryon-modal__loading-title">Bụt đang may đo...</p>
-                <span className="tryon-modal__loading-status">{status}</span>
-              </div>
-
-              <div
-                className="tryon-modal__progress"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(progress)}
-              >
-                <div
-                  className="tryon-modal__progress-bar"
-                  style={{ width: `${progress}%` }}
-                />
+                  {isProcessing ? "Đang xử lý..." : "Bắt Đầu Thử Đồ"}
+                </button>
               </div>
             </div>
-          )}
 
-          {!showLoading && (
-            <div className="tryon-modal__preview-row">
-              <div className="tryon-modal__preview-card">
-                <div className="tryon-modal__preview-title">Sản phẩm</div>
-                <img
-                  className="tryon-modal__preview-img"
-                  src={productImageUrl}
-                  alt={productName ?? "Sản phẩm"}
-                />
-              </div>
+            {/* Right Panel: Output */}
+            <div className="w-full lg:w-[55%] h-[45vh] lg:h-full bg-neutral-100 relative overflow-hidden flex items-center justify-center">
+              {/* Grid Background Pattern */}
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+CgkJPHBhdGggZD0iTTAgMGgyNHYyNEgweiIgZmlsbD0ibm9uZSIvPgoJCTxwYXRoIGQ9Ik0wIDI0SDBWMHhoMXYyNHptMjQgMEgyM1YwaDF2MjR6IiBmaWxsPSJyZ2JhKDAsIDAsIDAsIDAuMDMpIi8+CgkJPHBhdGggZD0iTTI0IDFWMGgtMjR2MWgyNHptMCAyM3YtMWgtMjR2MWgyNHoiIGZpbGw9InJnYmEoMCwgMCwgMCwgMC4wMykiLz4KCTwvc3ZnPg==')] opacity-50 pointer-events-none" />
 
-              <div
-                className={`tryon-modal__preview-card${resultUrl ? " tryon-modal__preview-card--result" : ""}`}
-              >
-                <div className="tryon-modal__preview-title">Kết quả</div>
-                <img
-                  className="tryon-modal__preview-img"
-                  src={resultUrl ?? productImageUrl}
-                  alt="Kết quả VTO"
-                />
-              </div>
+              <AnimatePresence mode="wait">
+                {/* 1. Idle State */}
+                {!isProcessing && !resultReady && (
+                  <motion.div
+                    key="idle"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="flex flex-col items-center justify-center text-neutral-400 p-8 text-center max-w-sm z-10"
+                  >
+                    <div className="w-24 h-24 mb-6 rounded-full bg-neutral-200/50 flex items-center justify-center">
+                      <Sparkles className="w-10 h-10 text-neutral-300" />
+                    </div>
+                    <p className="text-lg font-medium text-neutral-500 mb-2">
+                      Chưa có kết quả
+                    </p>
+                    <p className="text-sm">
+                      Hãy chọn người mẫu và sản phẩm, sau đó nhấn "Bắt Đầu Thử
+                      Đồ" để xem điều kỳ diệu.
+                    </p>
+                  </motion.div>
+                )}
+
+                {/* 2. Processing State */}
+                {isProcessing && (
+                  <motion.div
+                    key="processing"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex flex-col items-center justify-center z-10 w-full max-w-md px-8"
+                  >
+                    <div className="relative mb-8">
+                      {/* Outer glow/pulse */}
+                      <div className="absolute inset-0 rounded-full bg-indigo-400 blur-xl opacity-30 animate-pulse" />
+                      <Loader2 className="w-16 h-16 text-indigo-600 animate-spin relative z-10" />
+                      <div className="absolute inset-0 flex items-center justify-center z-20">
+                        <span className="text-xs font-bold text-indigo-700">
+                          {progress}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <h4 className="text-xl font-bold text-neutral-800 mb-2">
+                      {processingText}
+                    </h4>
+
+                    {/* Progress Bar */}
+                    <div className="w-full h-1.5 bg-neutral-200 rounded-full overflow-hidden mt-4">
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
+                        initial={{ width: "0%" }}
+                        animate={{ width: `${progress}%` }}
+                        transition={{ ease: "linear" }}
+                      />
+                    </div>
+                    <p className="text-sm text-neutral-500 mt-4 text-center animate-pulse">
+                      Vui lòng giữ tab này mở trong lúc Bụt thực hiện phép
+                      thuật...
+                    </p>
+                  </motion.div>
+                )}
+
+                {/* 3. Result State */}
+                {resultReady && resultUrl && (
+                  <motion.div
+                    key="result"
+                    initial={{ opacity: 0, filter: "blur(10px)" }}
+                    animate={{ opacity: 1, filter: "blur(0px)" }}
+                    transition={{ duration: 0.8 }}
+                    className="absolute inset-4 sm:inset-8 z-10 flex items-center justify-center"
+                  >
+                    {/* Object-contain ensures full image is visible, scale down automatically if large */}
+                    <img
+                      src={resultUrl}
+                      alt="Kết quả thử đồ"
+                      className="w-full h-full object-contain drop-shadow-2xl"
+                    />
+
+                    <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20">
+                      <Sparkles className="w-3 h-3 text-purple-600" />
+                      <span className="text-xs font-medium text-neutral-800">
+                        Tạo bởi Bụt AI
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          )}
-
-          {error && <div className="tryon-modal__error">{error}</div>}
+          </motion.div>
         </div>
-
-        <div className="tryon-modal__footer">
-          <button
-            type="button"
-            className="tryon-modal__btn tryon-modal__btn--outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Đóng
-          </button>
-          <button
-            type="button"
-            className="tryon-modal__btn tryon-modal__btn--primary"
-            onClick={handleVTO}
-            disabled={!canStart}
-          >
-            ✨ Thử ngay
-          </button>
-        </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </AnimatePresence>
   );
 }
