@@ -523,11 +523,12 @@ export default function Sidebar({
         )}
       </motion.aside>
 
-      {/* ── TryOn Modal ── */}
+      {/* ── TryOn Modal (Kho thử đồ) ── */}
       <TryOnModal
         open={isTryOnOpen}
         onOpenChange={setIsTryOnOpen}
         productImageUrl=""
+        defaultView="history"
       />
 
       <ConfirmModal

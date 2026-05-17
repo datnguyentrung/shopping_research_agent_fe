@@ -16,14 +16,10 @@ console.log("🔧 API_BASE_URL:", API_BASE_URL);
 
 // --- HÀM LẤY HEADERS DÙNG CHUNG ---
 export const getAuthHeaders = async (): Promise<Record<string, string>> => {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  const headers: Record<string, string> = {};
 
-  // Dùng getSession() Supabase sẽ tự cố gắng refresh token ngầm nếu phát hiện hết hạn
   const {
     data: { session },
-    error,
   } = await supabase.auth.getSession();
 
   if (session?.access_token) {
@@ -89,13 +85,22 @@ function setupInterceptors(instance: AxiosInstance): AxiosInstance {
   // 1. REQUEST INTERCEPTOR: Bắt trước khi gửi request đi
   instance.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
-      const headers = await getAuthHeaders();
-
-      for (const [key, value] of Object.entries(headers)) {
+      // 1. Lấy token (KHÔNG lấy Content-Type cứng nữa)
+      const authHeaders = await getAuthHeaders();
+      for (const [key, value] of Object.entries(authHeaders)) {
         config.headers.set(key, value);
       }
 
-      // 🌟 LOG REQUEST: In ra request đang được gọi
+      // 2. XỬ LÝ CONTENT-TYPE THÔNG MINH:
+      // Nếu data là FormData (có file ảnh), XÓA Content-Type để trình duyệt TỰ ĐỘNG sinh ra multipart/form-data kèm boundary.
+      if (config.data instanceof FormData) {
+        config.headers.delete("Content-Type");
+      }
+      // Nếu không phải form data và cũng chưa ai set Content-Type, thì mặc định là JSON
+      else if (!config.headers.has("Content-Type")) {
+        config.headers.set("Content-Type", "application/json");
+      }
+
       console.log(
         `🚀 [REQ] ${config.method?.toUpperCase()} ${config.baseURL || ""}${config.url || ""}`,
       );
