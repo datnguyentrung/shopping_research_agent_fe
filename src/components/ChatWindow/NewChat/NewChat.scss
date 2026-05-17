@@ -1,4 +1,4 @@
-/* ──────────────── Theme Tokens ──────────────── */
+/* ──────────────── Tokens ──────────────── */
 $nc-bg: #ffffff;
 $nc-text-primary: #111827;
 $nc-text-secondary: #6b7280;
@@ -7,19 +7,19 @@ $nc-accent-start: #2563eb;
 $nc-accent-end: #7c3aed;
 $nc-card-bg: #f9fafb;
 $nc-card-border: #f0f0f5;
-$nc-card-hover-border: #d1d5f0;
+$nc-card-hover-border: #d1d5db;
 $nc-card-icon-bg: #eef2ff;
 $nc-card-icon-color: #4f46e5;
-$nc-glow-color: rgba(99, 102, 241, 0.35);
+$nc-glow: rgba(99, 102, 241, 0.35);
 
-/* ──────────────── Block ──────────────── */
+/* ──────────────── Container ──────────────── */
 .new-chat {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 48px;
+  gap: 36px;
   padding: 40px 24px;
   overflow-y: auto;
   background: $nc-bg;
@@ -31,32 +31,31 @@ $nc-glow-color: rgba(99, 102, 241, 0.35);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   text-align: center;
   max-width: 480px;
 }
 
-.new-chat__icon-wrapper {
+.new-chat__logo {
   position: relative;
-  width: 72px;
-  height: 72px;
-  border-radius: 22px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, $nc-accent-start, $nc-accent-end);
   box-shadow:
-    0 8px 24px rgba(37, 99, 235, 0.22),
-    0 0 0 8px $nc-glow-color;
+    0 6px 20px rgba(37, 99, 235, 0.2),
+    0 0 0 6px rgba($nc-glow, 0.4);
 
-  /* Outer glow ring */
   &::before {
     content: "";
     position: absolute;
-    inset: -12px;
-    border-radius: 30px;
-    background: radial-gradient(circle, $nc-glow-color 0%, transparent 70%);
-    opacity: 0.6;
+    inset: -10px;
+    border-radius: 26px;
+    background: radial-gradient(circle, rgba($nc-glow, 0.5) 0%, transparent 70%);
+    opacity: 0.5;
     z-index: -1;
     animation: new-chat__glow-pulse 3s ease-in-out infinite;
   }
@@ -65,24 +64,24 @@ $nc-glow-color: rgba(99, 102, 241, 0.35);
 @keyframes new-chat__glow-pulse {
   0%,
   100% {
-    opacity: 0.4;
+    opacity: 0.35;
     transform: scale(1);
   }
   50% {
-    opacity: 0.7;
-    transform: scale(1.08);
+    opacity: 0.6;
+    transform: scale(1.06);
   }
 }
 
-.new-chat__icon {
-  width: 32px;
-  height: 32px;
+.new-chat__logo-icon {
+  width: 26px;
+  height: 26px;
   color: #ffffff;
 }
 
 .new-chat__title {
   margin: 0;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
   color: $nc-text-primary;
   line-height: 1.3;
@@ -91,18 +90,25 @@ $nc-glow-color: rgba(99, 102, 241, 0.35);
 
 .new-chat__subtitle {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   color: $nc-text-secondary;
   line-height: 1.6;
   max-width: 380px;
 }
 
-/* ──────────────── Quick Action Cards ──────────────── */
-.new-chat__actions {
+/* ──────────────── Input Wrap ──────────────── */
+.new-chat__input-wrap {
+  width: 100%;
+  max-width: 640px;
+  margin-top: 24px;
+}
+
+/* ──────────────── Feature Cards ──────────────── */
+.new-chat__cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  max-width: 680px;
+  gap: 14px;
+  max-width: 640px;
   width: 100%;
 }
 
@@ -111,7 +117,7 @@ $nc-glow-color: rgba(99, 102, 241, 0.35);
   flex-direction: column;
   align-items: flex-start;
   gap: 12px;
-  padding: 20px 18px;
+  padding: 18px 16px;
   border-radius: 16px;
   border: 1px solid $nc-card-border;
   background: $nc-card-bg;
@@ -134,10 +140,10 @@ $nc-glow-color: rgba(99, 102, 241, 0.35);
   }
 }
 
-.new-chat__card-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+.new-chat__card-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
   background: $nc-card-icon-bg;
   display: flex;
   align-items: center;
@@ -146,20 +152,26 @@ $nc-glow-color: rgba(99, 102, 241, 0.35);
 }
 
 .new-chat__card-icon-svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   color: $nc-card-icon-color;
 }
 
+.new-chat__card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .new-chat__card-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: $nc-text-primary;
   line-height: 1.3;
 }
 
 .new-chat__card-desc {
-  font-size: 13px;
+  font-size: 12px;
   color: $nc-text-tertiary;
   line-height: 1.45;
 }
@@ -167,27 +179,27 @@ $nc-glow-color: rgba(99, 102, 241, 0.35);
 /* ──────────────── Responsive ──────────────── */
 @media (max-width: 768px) {
   .new-chat {
-    gap: 36px;
-    padding: 32px 20px;
+    gap: 28px;
+    padding: 28px 20px;
   }
 
   .new-chat__title {
-    font-size: 22px;
+    font-size: 21px;
   }
 
   .new-chat__subtitle {
-    font-size: 14px;
+    font-size: 13px;
   }
 
-  .new-chat__actions {
+  .new-chat__cards {
     grid-template-columns: 1fr;
     max-width: 400px;
   }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
-  .new-chat__actions {
+  .new-chat__cards {
     grid-template-columns: repeat(3, 1fr);
-    max-width: 560px;
+    max-width: 540px;
   }
 }

@@ -1,14 +1,16 @@
-import { ChatInput, ChatWindow, Sidebar } from "@/components";
+import { ChatWindow, Sidebar } from "@/components";
 import { useChatSSE } from "@/hooks/useChatSSE";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Route, Routes, useNavigate, useParams } from "react-router-dom";
 import "./App.scss";
+import { useAuth } from './contexts/AuthContext';
 
 // Component chứa logic chính của một phiên chat
 function ChatSession() {
   const { sessionId } = useParams<{ sessionId: string }>(); // Bắt ID từ URL
   const navigate = useNavigate();
   const isLocalNavRef = useRef(false); // Ref để tránh load lại lịch sử khi vừa tạo mới phiên
+  const { user, loginWithGoogle, logout } = useAuth();
 
   // Hàm này được gọi bởi hook khi Backend trả về session id mới
   const handleSessionCreated = useCallback(
@@ -57,19 +59,20 @@ function ChatSession() {
 
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar user={user} loginWithGoogle={loginWithGoogle} logout={logout} />
       <div className="app-shell__main">
         <ChatWindow
           messages={messages}
           isLoading={isLoading}
           isFetchingHistory={isFetchingHistory}
           newSearchTerm={newSearchTerm}
+          user={user}
           onReset={handleResetChat}
           onSendHiddenMessage={handleSendHiddenMessage}
           error={error}
           onQuickAction={handleSendMessage}
+          onSend={handleSendMessage}
         />
-        <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
       </div>
     </div>
   );

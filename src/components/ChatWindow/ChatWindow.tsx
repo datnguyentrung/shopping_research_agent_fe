@@ -1,17 +1,20 @@
 import A2UIRenderer from "@/components/a2ui/A2UIRenderer";
-import { NewChat } from "@/components/ChatWindow/NewChat";
+import ChatInput from "@/components/ChatInput";
 import ProcessingStatus from "@/components/a2ui/ProcessingStatus";
+import { NewChat } from "@/components/ChatWindow/NewChat";
 import { useScrollToBottom } from "@/hooks/useScrollToBottom";
 import type { ChatMessage } from "@/types/chat.types";
 import { formatDateTime } from "@/utils/formatters";
+import { Skeleton } from "boneyard-js/react";
 import { Copy, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, type FC } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Skeleton } from "boneyard-js/react";
+import type { useAuth } from "../../contexts/AuthContext";
 import ActivityMessage from "../ActivityMessage";
 import TryOnModal from "../TryOnModal";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import "./ChatWindow.scss";
 
 /* ───────── Props ───────── */
@@ -22,9 +25,11 @@ interface ChatWindowProps {
   isFetchingHistory: boolean;
   error: string | null;
   newSearchTerm: string;
+  user: ReturnType<typeof useAuth>["user"];
   onReset: () => void;
   onSendHiddenMessage: (action: string, payload: unknown) => Promise<void>;
   onQuickAction?: (prompt: string) => void;
+  onSend: (content: string) => Promise<void>;
 }
 
 /* ───────── Code Block ───────── */
@@ -64,9 +69,7 @@ const ChatSkeleton: FC = () => {
             }`}
           >
             {/* Avatar bone */}
-            {i % 2 === 0 && (
-              <div className="chat-window__skeleton-avatar" />
-            )}
+            {i % 2 === 0 && <div className="chat-window__skeleton-avatar" />}
 
             {/* Bubble bones */}
             <div
@@ -88,9 +91,7 @@ const ChatSkeleton: FC = () => {
             </div>
 
             {/* User avatar bone (right side) */}
-            {i % 2 !== 0 && (
-              <div className="chat-window__skeleton-avatar" />
-            )}
+            {i % 2 !== 0 && <div className="chat-window__skeleton-avatar" />}
           </div>
         ))}
       </div>
@@ -106,8 +107,10 @@ export default function ChatWindow({
   isFetchingHistory,
   error,
   newSearchTerm,
+  user,
   onSendHiddenMessage,
   onQuickAction,
+  onSend,
 }: ChatWindowProps) {
   const [selectedProduct, setSelectedProduct] = useState<{
     url: string;
@@ -123,6 +126,15 @@ export default function ChatWindow({
     lastMessage?.role === "assistant" &&
     (lastMessage?.a2ui?.type === "a2ui_interactive_product" ||
       (lastMessage?.seenProducts && lastMessage.seenProducts.length > 0));
+
+  const userInitials = user?.user_metadata?.full_name
+    ? user.user_metadata.full_name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "?";
 
   useEffect(() => {
     if (hasProductCard && scrollContainerRef.current) {
@@ -186,7 +198,11 @@ export default function ChatWindow({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, transition: { duration: 0.15 } }}
             >
-              <NewChat onQuickAction={onQuickAction ?? (() => {})} />
+              <NewChat
+                onQuickAction={onQuickAction ?? (() => {})}
+                onSend={onSend}
+                isLoading={isLoading}
+              />
             </motion.div>
           )}
 
@@ -217,9 +233,19 @@ export default function ChatWindow({
                       <div className="chat-window__avatar chat-window__avatar--assistant">
                         <Sparkles className="chat-window__avatar-icon" />
                       </div>
+                    ) : user ? (
+                      <Avatar className="chat-sidebar__avatar">
+                        <AvatarImage
+                          src={user?.user_metadata?.avatar_url}
+                          alt={user?.user_metadata?.full_name}
+                        />
+                        <AvatarFallback className="chat-sidebar__avatar-fallback">
+                          {userInitials}
+                        </AvatarFallback>
+                      </Avatar>
                     ) : (
                       <div className="chat-window__avatar chat-window__avatar--user">
-                        <span className="chat-window__avatar-text">JD</span>
+                        <AvatarImage src="" alt="User Avatar" />
                       </div>
                     )}
 
@@ -241,13 +267,15 @@ export default function ChatWindow({
                         {message.role === "assistant" ? (
                           <>
                             {!message.content &&
-                              message.a2ui?.type !== "a2ui_interactive_product" &&
+                              message.a2ui?.type !==
+                                "a2ui_interactive_product" &&
                               message.a2ui?.type !== "a2ui_questionnaire" &&
                               !(
                                 message.seenProducts &&
                                 message.seenProducts.length > 0
                               ) &&
-                              message.a2ui?.type === "a2ui_processing_status" && (
+                              message.a2ui?.type ===
+                                "a2ui_processing_status" && (
                                 <ProcessingStatus
                                   text={message.a2ui.data.statusText}
                                   percent={message.a2ui.data.progressPercent}
@@ -255,7 +283,8 @@ export default function ChatWindow({
                               )}
 
                             {!message.content &&
-                              message.a2ui?.type !== "a2ui_interactive_product" &&
+                              message.a2ui?.type !==
+                                "a2ui_interactive_product" &&
                               message.a2ui?.type !== "a2ui_questionnaire" &&
                               message.a2ui?.type !== "a2ui_processing_status" &&
                               !(
@@ -285,13 +314,17 @@ export default function ChatWindow({
                                   ),
                                   code: ({ className, children }) => {
                                     const language =
-                                      className?.replace("language-", "") || "code";
+                                      className?.replace("language-", "") ||
+                                      "code";
                                     const text = String(children).replace(
                                       /\n$/,
                                       "",
                                     );
                                     return className ? (
-                                      <CodeBlock code={text} language={language} />
+                                      <CodeBlock
+                                        code={text}
+                                        language={language}
+                                      />
                                     ) : (
                                       <code className="chat-window__text-inline-code">
                                         {text}
@@ -377,10 +410,17 @@ export default function ChatWindow({
                                 ),
                                 code: ({ className, children }) => {
                                   const language =
-                                    className?.replace("language-", "") || "code";
-                                  const text = String(children).replace(/\n$/, "");
+                                    className?.replace("language-", "") ||
+                                    "code";
+                                  const text = String(children).replace(
+                                    /\n$/,
+                                    "",
+                                  );
                                   return className ? (
-                                    <CodeBlock code={text} language={language} />
+                                    <CodeBlock
+                                      code={text}
+                                      language={language}
+                                    />
                                   ) : (
                                     <code className="chat-window__text-inline-code">
                                       {text}
@@ -422,6 +462,14 @@ export default function ChatWindow({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {viewState === "window-messages" && (
+          <ChatInput
+            onSend={onSend}
+            isLoading={isLoading}
+            showDisclaimer
+          />
+        )}
       </div>
 
       {/* Modal hiện lên khi selectedProduct có dữ liệu */}

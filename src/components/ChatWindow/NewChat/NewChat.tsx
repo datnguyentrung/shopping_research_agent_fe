@@ -1,8 +1,9 @@
+import ChatInput from "@/components/ChatInput";
 import {
-  Shirt,
   Search,
   Sparkles,
   Wand2,
+  Shirt,
 } from "lucide-react";
 import { motion } from "motion/react";
 import type { FC } from "react";
@@ -19,9 +20,11 @@ interface QuickAction {
 
 interface NewChatProps {
   onQuickAction: (prompt: string) => void;
+  onSend: (content: string) => Promise<void>;
+  isLoading?: boolean;
 }
 
-/* ───────── Dữ liệu gợi ý ───────── */
+/* ───────── Quick action data ───────── */
 
 const QUICK_ACTIONS: QuickAction[] = [
   {
@@ -44,21 +47,18 @@ const QUICK_ACTIONS: QuickAction[] = [
   },
 ];
 
-/* ───────── Animation Variants ───────── */
+/* ───────── Animation variants ───────── */
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.12,
-      delayChildren: 0.35,
-    },
+    transition: { staggerChildren: 0.12, delayChildren: 0.25 },
   },
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 24 },
   visible: {
     opacity: 1,
     y: 0,
@@ -68,18 +68,18 @@ const cardVariants = {
 
 /* ───────── Component ───────── */
 
-const NewChat: FC<NewChatProps> = ({ onQuickAction }) => {
+const NewChat: FC<NewChatProps> = ({ onQuickAction, onSend, isLoading = false }) => {
   return (
     <div className="new-chat">
-      {/* Hero Section */}
+      {/* Hero */}
       <motion.div
         className="new-chat__hero"
-        initial={{ opacity: 0, scale: 0.92 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, scale: 0.94, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <div className="new-chat__icon-wrapper">
-          <Sparkles className="new-chat__icon" />
+        <div className="new-chat__logo">
+          <Sparkles className="new-chat__logo-icon" />
         </div>
 
         <h1 className="new-chat__title">
@@ -91,9 +91,18 @@ const NewChat: FC<NewChatProps> = ({ onQuickAction }) => {
         </p>
       </motion.div>
 
-      {/* Quick Action Cards */}
+      {/* Chat Input */}
+      <div className="new-chat__input-wrap">
+        <ChatInput
+          onSend={onSend}
+          isLoading={isLoading}
+          showDisclaimer={false}
+        />
+      </div>
+
+      {/* Feature Cards */}
       <motion.div
-        className="new-chat__actions"
+        className="new-chat__cards"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -105,16 +114,22 @@ const NewChat: FC<NewChatProps> = ({ onQuickAction }) => {
               key={action.title}
               className="new-chat__card"
               variants={cardVariants}
-              whileHover={{ y: -4, boxShadow: "0 12px 32px rgba(37,99,235,0.10)" }}
+              whileHover={{
+                y: -4,
+                boxShadow: "0 14px 36px rgba(0,0,0,0.08)",
+                borderColor: "#d1d5db",
+              }}
               whileTap={{ scale: 0.98 }}
               onClick={() => onQuickAction(action.prompt)}
               type="button"
             >
-              <div className="new-chat__card-icon">
+              <div className="new-chat__card-icon-wrap">
                 <Icon className="new-chat__card-icon-svg" />
               </div>
-              <span className="new-chat__card-title">{action.title}</span>
-              <span className="new-chat__card-desc">{action.description}</span>
+              <div className="new-chat__card-body">
+                <span className="new-chat__card-title">{action.title}</span>
+                <span className="new-chat__card-desc">{action.description}</span>
+              </div>
             </motion.button>
           );
         })}
