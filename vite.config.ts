@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
+import react from "@vitejs/plugin-react";
 import path from "path";
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -18,6 +18,14 @@ export default defineConfig({
       "@store": path.resolve(__dirname, "./src/store"),
       "@providers": path.resolve(__dirname, "./src/providers"),
       "@types": path.resolve(__dirname, "./src/types"),
+    },
+  },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        // Tự động inject biến và mixins vào tất cả các file SCSS
+        additionalData: `@use "@/styles/_variables.scss" as *;\n@use "@/styles/_mixins.scss" as *;`,
+      },
     },
   },
 });

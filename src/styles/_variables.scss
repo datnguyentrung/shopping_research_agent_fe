@@ -1,5 +1,340 @@
 @use "sass:map";
 
+// ============================================================
+// DESIGN TOKENS — AI Receptionist FE
+// ============================================================
+
+// ------------------------------------------------------------
+// Breakpoints (mobile-first)
+// ------------------------------------------------------------
+$xs: 375px;
+$sm: 640px;
+$md: 768px;
+$lg: 1024px;
+$xl: 1280px;
+$xxl: 1536px;
+
+// ------------------------------------------------------------
+// Brand Red — Primary
+// ------------------------------------------------------------
+$brand-red-50: #fff1f1;
+$brand-red-100: #ffe0e0;
+$brand-red-200: #ffc5c5;
+$brand-red-300: #ff9d9d;
+$brand-red-400: #ff6464;
+$brand-red-500: #f53535; // vivid accent
+$brand-red: #e02020; // primary brand
+$brand-red-700: #c01a1a;
+$brand-red-800: #9e1414;
+$brand-red-900: #7b0000; // dark variant
+$brand-red-dark: #7b0000; // alias
+
+// ------------------------------------------------------------
+// Brand Navy / Dark
+// ------------------------------------------------------------
+$brand-dark-50: #eeeef5;
+$brand-dark-100: #d3d3e8;
+$brand-dark-200: #a9a9d0;
+$brand-dark-300: #7e7eb8;
+$brand-dark-400: #5353a0;
+$brand-dark-500: #2d2d7a;
+$brand-dark: #1a1a2e; // primary dark
+$brand-dark-700: #141426;
+$brand-dark-800: #0e0e1e;
+$brand-dark-900: #08080f;
+
+// ------------------------------------------------------------
+// Neutral / Gray Scale
+// ------------------------------------------------------------
+$white: #ffffff;
+$black: #000000;
+$gray-50: #f9fafb;
+$gray-100: #f3f4f6;
+$gray-150: #eef0f3;
+$gray-200: #e5e7eb;
+$gray-250: #dde0e6;
+$gray-300: #d1d5db;
+$gray-400: #9ca3af;
+$gray-500: #6b7280;
+$gray-600: #4b5563;
+$gray-700: #374151;
+$gray-800: #1f2937;
+$gray-900: #111827;
+$gray-950: #0a0f1a;
+
+// Cool-toned surface grays (used in login / card backgrounds)
+$surface-50: #f4f6fa;
+$surface-100: #e8eaf2;
+$surface-200: #d6d9e8;
+$surface-muted: #c0c4d6;
+$surface-subtle: #8a8fa8;
+
+// ------------------------------------------------------------
+// Semantic — Success (Green)
+// ------------------------------------------------------------
+$success-50: #ecfdf5;
+$success-100: #d1fae5;
+$success-200: #a7f3d0;
+$success-300: #6ee7b7;
+$success-400: #34d399;
+$success: #10b981; // default
+$success-600: #059669;
+$success-700: #047857;
+$success-800: #065f46;
+$success-900: #064e3b;
+$success-light: $success-50;
+$success-dark: $success-700;
+
+// ------------------------------------------------------------
+// Semantic — Warning (Amber)
+// ------------------------------------------------------------
+$warning-50: #fffbeb;
+$warning-100: #fef3c7;
+$warning-200: #fde68a;
+$warning-300: #fcd34d;
+$warning-400: #fbbf24;
+$warning: #f59e0b; // default
+$warning-600: #d97706;
+$warning-700: #b45309;
+$warning-800: #92400e;
+$warning-900: #78350f;
+$warning-light: $warning-50;
+$warning-dark: $warning-700;
+
+// ------------------------------------------------------------
+// Semantic — Error / Danger (Red variant)
+// ------------------------------------------------------------
+$error-50: #fef2f2;
+$error-100: #fee2e2;
+$error-200: #fecaca;
+$error-300: #fca5a5;
+$error-400: #f87171;
+$error: #ef4444; // default
+$error-600: #dc2626;
+$error-700: #b91c1c;
+$error-800: #991b1b;
+$error-900: #7f1d1d;
+$error-light: $error-50;
+$error-dark: $error-700;
+
+// ------------------------------------------------------------
+// Semantic — Info (Blue)
+// ------------------------------------------------------------
+$info-50: #eff6ff;
+$info-100: #dbeafe;
+$info-200: #bfdbfe;
+$info-300: #93c5fd;
+$info-400: #60a5fa;
+$info: #3b82f6; // default
+$info-600: #2563eb;
+$info-700: #1d4ed8;
+$info-800: #1e40af;
+$info-900: #1e3a8a;
+$info-light: $info-50;
+$info-dark: $info-700;
+
+// ------------------------------------------------------------
+// Attendance / Status Colors
+// ------------------------------------------------------------
+$status-present: #10b981; // green
+$status-present-bg: #ecfdf5;
+$status-present-border: #6ee7b7;
+
+$status-absent: #ef4444; // red
+$status-absent-bg: #fef2f2;
+$status-absent-border: #fca5a5;
+
+$status-late: #f59e0b; // amber
+$status-late-bg: #fffbeb;
+$status-late-border: #fcd34d;
+
+$status-excused: #3b82f6; // blue
+$status-excused-bg: #eff6ff;
+$status-excused-border: #93c5fd;
+
+$status-pending: #8b5cf6; // violet
+$status-pending-bg: #f5f3ff;
+$status-pending-border: #c4b5fd;
+
+$status-inactive: #9ca3af; // gray
+$status-inactive-bg: #f3f4f6;
+$status-inactive-border: #d1d5db;
+
+// ------------------------------------------------------------
+// Text Colors
+// ------------------------------------------------------------
+$text-primary: #111827; // $gray-900
+$text-secondary: #374151; // $gray-700
+$text-muted: #6b7280; // $gray-500
+$text-subtle: #9ca3af; // $gray-400
+$text-disabled: #d1d5db; // $gray-300
+$text-on-dark: #ffffff;
+$text-on-brand: #ffffff;
+$text-link: $brand-red;
+$text-link-hover: $brand-red-700;
+$text-heading: $brand-dark;
+
+// Dark-surface text tokens
+$text-dark-primary: #f9fafb;
+$text-dark-secondary: #d1d5db;
+$text-dark-muted: #9ca3af;
+
+// ------------------------------------------------------------
+// Background Colors
+// ------------------------------------------------------------
+$bg-base: #f4f6fa; // body/page background
+$bg-white: #ffffff;
+$bg-surface: #ffffff; // card / panel surface
+$bg-elevated: #fafafa; // slightly raised surface
+$bg-subtle: $surface-100; // #e8eaf2
+$bg-overlay: rgba(0, 0, 0, 0.45);
+$bg-overlay-sm: rgba(0, 0, 0, 0.2);
+$bg-dark: $brand-dark; // #1a1a2e
+$bg-dark-deep: $brand-dark-900;
+
+// Brand tinted backgrounds
+$bg-brand-soft: $brand-red-50; // #fff1f1
+$bg-brand-muted: $brand-red-100; // #ffe0e0
+
+// ------------------------------------------------------------
+// Border Colors
+// ------------------------------------------------------------
+$border-default: #e5e7eb; // $gray-200
+$border-subtle: #f0f0f5; // very light
+$border-strong: #d1d5db; // $gray-300
+$border-dark: #374151; // $gray-700
+$border-focus: $brand-red;
+$border-error: $error;
+$border-success: $success;
+
+// ------------------------------------------------------------
+// Border Radius
+// ------------------------------------------------------------
+$radius-xs: 4px;
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 20px;
+$radius-2xl: 24px;
+$radius-full: 9999px;
+
+// ------------------------------------------------------------
+// Spacing (base unit 4px)
+// ------------------------------------------------------------
+$space: 4px;
+$space-1: 4px;
+$space-2: 8px;
+$space-3: 12px;
+$space-4: 16px;
+$space-5: 20px;
+$space-6: 24px;
+$space-7: 28px;
+$space-8: 32px;
+$space-9: 36px;
+$space-10: 40px;
+$space-11: 44px;
+$space-12: 48px;
+$space-14: 56px;
+$space-16: 64px;
+$space-20: 80px;
+
+// ------------------------------------------------------------
+// Typography — Fluid sizing via clamp()
+// Scales smoothly between mobile and desktop without breakpoints
+// Format: clamp(min, preferred, max)
+// ------------------------------------------------------------
+$font-sans: "Inter", "Poppins", system-ui, sans-serif;
+$font-mono: "Fira Code", "Cascadia Code", monospace;
+
+$text-xs: clamp(0.6875rem, 0.65rem + 0.2vw, 0.75rem); // 11–12px
+$text-sm: clamp(0.8rem, 0.75rem + 0.25vw, 0.875rem); // 12.8–14px
+$text-base: clamp(0.9375rem, 0.9rem + 0.2vw, 1rem); // 15–16px
+$text-lg: clamp(1.05rem, 1rem + 0.3vw, 1.125rem); // 16.8–18px
+$text-xl: clamp(1.15rem, 1.05rem + 0.5vw, 1.25rem); // 18.4–20px
+$text-2xl: clamp(1.3rem, 1.15rem + 0.75vw, 1.5rem); // 20.8–24px
+$text-3xl: clamp(1.5rem, 1.3rem + 1vw, 1.875rem); // 24–30px
+$text-4xl: clamp(1.75rem, 1.5rem + 1.25vw, 2.25rem); // 28–36px
+
+$font-normal: 400;
+$font-medium: 500;
+$font-semibold: 600;
+$font-bold: 700;
+$font-extrabold: 800;
+
+$leading-tight: 1.25;
+$leading-snug: 1.375;
+$leading-normal: 1.5;
+$leading-relaxed: 1.625;
+
+// ------------------------------------------------------------
+// Z-index Stack
+// ------------------------------------------------------------
+$z-behind: -1;
+$z-base: 0;
+$z-raised: 10;
+$z-dropdown: 100;
+$z-sticky: 200;
+$z-overlay: 300;
+$z-modal: 400;
+$z-toast: 500;
+$z-tooltip: 600;
+
+// ------------------------------------------------------------
+// Transitions
+// ------------------------------------------------------------
+$transition-fast: all 0.15s ease;
+$transition-base: all 0.2s ease;
+$transition-slow: all 0.3s ease;
+$transition-colors:
+  color 0.2s ease,
+  background-color 0.2s ease,
+  border-color 0.2s ease;
+
+// ------------------------------------------------------------
+// Box Shadows
+// ------------------------------------------------------------
+$shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+$shadow-sm:
+  0 1px 3px rgba(0, 0, 0, 0.1),
+  0 1px 2px rgba(0, 0, 0, 0.06);
+$shadow-md:
+  0 4px 12px rgba(0, 0, 0, 0.1),
+  0 2px 4px rgba(0, 0, 0, 0.06);
+$shadow-lg:
+  0 10px 30px rgba(0, 0, 0, 0.12),
+  0 4px 8px rgba(0, 0, 0, 0.06);
+$shadow-xl:
+  0 20px 40px rgba(0, 0, 0, 0.15),
+  0 8px 16px rgba(0, 0, 0, 0.08);
+$shadow-2xl: 0 32px 64px rgba(0, 0, 0, 0.2);
+$shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+
+// Brand-colored glow shadows
+$shadow-brand: 0 4px 16px rgba(#e02020, 0.3);
+$shadow-brand-lg: 0 8px 32px rgba(#e02020, 0.25);
+$shadow-success: 0 4px 16px rgba(#10b981, 0.25);
+$shadow-error: 0 4px 16px rgba(#ef4444, 0.25);
+$shadow-info: 0 4px 16px rgba(#3b82f6, 0.25);
+
+// ------------------------------------------------------------
+// Gradients
+// ------------------------------------------------------------
+$gradient-brand: linear-gradient(135deg, #e02020 0%, #7b0000 100%);
+$gradient-brand-soft: linear-gradient(135deg, #f53535 0%, #e02020 100%);
+$gradient-dark: linear-gradient(135deg, #2d2d7a 0%, #1a1a2e 100%);
+$gradient-dark-brand: linear-gradient(
+  135deg,
+  #1a1a2e 0%,
+  #7b0000 60%,
+  #e02020 100%
+);
+$gradient-surface: linear-gradient(180deg, #ffffff 0%, #f4f6fa 100%);
+$gradient-overlay: linear-gradient(
+  to bottom,
+  rgba(0, 0, 0, 0) 0%,
+  rgba(0, 0, 0, 0.6) 100%
+);
+
 $font-heading:
   ui-sans-serif,
   -apple-system,

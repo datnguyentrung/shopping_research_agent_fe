@@ -9,7 +9,7 @@ import type {
   ChatStreamChunk,
 } from "../types/chat.types";
 import { normalizeA2UIPayload } from "../utils/a2ui";
-import { saveGuestChat } from "../utils/guestChatStorage";
+// import { saveGuestChat } from "../utils/guestChatStorage";
 
 const createMessage = (
   role: ChatMessage["role"],
@@ -159,23 +159,29 @@ export const useChatSSE = (
               if (chunk.type === "a2ui") {
                 const rawPayload = (chunk.a2ui ?? chunk.a2Ui) as A2UIPayload;
                 if (rawPayload && rawPayload.type === "a2ui_session_init") {
-                  const { sessionId: newId, title, createdAt } = rawPayload.data;
+                  const { sessionId: newId } = rawPayload.data;
                   if (newId) {
                     sessionIdRef.current = newId;
                     if (onSessionCreated) onSessionCreated(newId);
 
                     // Lưu chat vào localStorage cho Guest (chưa đăng nhập)
-                    if (!user) {
-                      saveGuestChat({
-                        id: newId,
-                        user_id: "guest",
-                        title: title ?? "New Chat",
-                        createdAt: createdAt ?? new Date().toISOString(),
-                        updatedAt: null,
-                      });
-                    } else {
+                    // if (!user) {
+                    //   saveGuestChat({
+                    //     id: newId,
+                    //     user_id: "guest",
+                    //     title: title ?? "New Chat",
+                    //     createdAt: createdAt ?? new Date().toISOString(),
+                    //     updatedAt: null,
+                    //   });
+                    // } else {
+                    //   // Đã đăng nhập → invalidate query để Sidebar cập nhật
+                    //   queryClient.invalidateQueries({ queryKey: ["conversations"] });
+                    // }
+                    if (user) {
                       // Đã đăng nhập → invalidate query để Sidebar cập nhật
-                      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+                      queryClient.invalidateQueries({
+                        queryKey: ["conversations"],
+                      });
                     }
                   }
                   return; // Không đẩy chunk metadata này vào giao diện tin nhắn
