@@ -114,6 +114,7 @@ interface TryOnModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   productImageUrl: string;
+  productUrl: string;
   productName?: string;
   defaultView?: "history" | "new_try_on";
 }
@@ -122,6 +123,7 @@ export default function TryOnModal({
   open,
   onOpenChange,
   productImageUrl,
+  productUrl,
   productName = "Sản phẩm đang chọn",
   defaultView = "new_try_on",
 }: TryOnModalProps) {
@@ -291,6 +293,7 @@ export default function TryOnModal({
       const json = await fireTryOnRequest(
         personFile,
         productImageUrl,
+        productUrl,
         productName,
       );
 

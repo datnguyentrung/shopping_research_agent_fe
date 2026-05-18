@@ -1,6 +1,6 @@
 import A2UIRenderer from "@/components/a2ui/A2UIRenderer";
-import ChatInput from "@/components/ChatInput";
 import ProcessingStatus from "@/components/a2ui/ProcessingStatus";
+import ChatInput from "@/components/ChatInput";
 import { NewChat } from "@/components/ChatWindow/NewChat";
 import { useScrollToBottom } from "@/hooks/useScrollToBottom";
 import type { ChatMessage } from "@/types/chat.types";
@@ -8,10 +8,10 @@ import { formatDateTime } from "@/utils/formatters";
 import { Skeleton } from "boneyard-js/react";
 import { Copy, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState, type FC } from "react";
+import React, { useEffect, useRef, useState, type FC } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import ActivityMessage from "../ActivityMessage";
 import TryOnModal from "../TryOnModal";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -113,7 +113,8 @@ export default function ChatWindow({
   onSend,
 }: ChatWindowProps) {
   const [selectedProduct, setSelectedProduct] = useState<{
-    url: string;
+    imgUrl: string;
+    productUrl: string;
     name: string;
   } | null>(null);
   const safeMessages = messages ?? [];
@@ -331,16 +332,48 @@ export default function ChatWindow({
                                       </code>
                                     );
                                   },
-                                  a: ({ href, children }) => (
-                                    <a
-                                      href={href}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                    >
-                                      {children}
-                                    </a>
-                                  ),
-                                  img: ({ src, alt }) => {
+                                  a: ({ href, children }) => {
+                                    const modifiedChildren = React.Children.map(
+                                      children,
+                                      (child) => {
+                                        if (React.isValidElement(child)) {
+                                          const element =
+                                            child as React.ReactElement<{
+                                              node?: { tagName?: string };
+                                              parentHref?: string;
+                                            }>;
+                                          if (
+                                            element.props?.node?.tagName ===
+                                            "img"
+                                          ) {
+                                            return React.cloneElement(element, {
+                                              parentHref: href,
+                                            });
+                                          }
+                                        }
+                                        return child;
+                                      },
+                                    );
+
+                                    return (
+                                      <a
+                                        href={href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        {modifiedChildren}
+                                      </a>
+                                    );
+                                  },
+                                  img: ({
+                                    src,
+                                    alt,
+                                    parentHref,
+                                  }: {
+                                    src?: string;
+                                    alt?: string;
+                                    parentHref?: string;
+                                  }) => {
                                     if (!src) return null;
                                     return (
                                       <div className="chat-window__image-container">
@@ -357,12 +390,14 @@ export default function ChatWindow({
                                             <button
                                               type="button"
                                               className="chat-window__tryon-btn"
-                                              onClick={() =>
+                                              onClick={(e) => {
+                                                e.preventDefault(); // QUAN TRỌNG: Ngăn chặn click lan ra thẻ <a> làm mở tab mới
                                                 setSelectedProduct({
-                                                  url: src,
+                                                  imgUrl: src,
+                                                  productUrl: parentHref || "", // Lấy href từ thẻ <a> cha truyền xuống
                                                   name: alt || "Sản phẩm",
-                                                })
-                                              }
+                                                });
+                                              }}
                                             >
                                               ✨ Thử đồ với Bụt
                                             </button>
@@ -464,11 +499,7 @@ export default function ChatWindow({
         </AnimatePresence>
 
         {viewState === "window-messages" && (
-          <ChatInput
-            onSend={onSend}
-            isLoading={isLoading}
-            showDisclaimer
-          />
+          <ChatInput onSend={onSend} isLoading={isLoading} showDisclaimer />
         )}
       </div>
 
@@ -479,7 +510,8 @@ export default function ChatWindow({
           onOpenChange={(open) => {
             if (!open) setSelectedProduct(null);
           }}
-          productImageUrl={selectedProduct.url}
+          productImageUrl={selectedProduct.imgUrl}
+          productUrl={selectedProduct.productUrl}
           productName={selectedProduct.name}
         />
       )}

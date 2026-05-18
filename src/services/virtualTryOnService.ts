@@ -5,11 +5,13 @@ import axiosInstance from "./axiosInstance";
 export const fireTryOnRequest = async (
   personFile: File,
   productImageUrl: string,
+  productUrl: string,
   productName: string,
 ) => {
   const form = new FormData();
   form.append("person_image_file", personFile); // Đảm bảo tên biến ở đây KHỚP VỚI FASTAPI nha
   form.append("product_file_path", productImageUrl);
+  form.append("product_url", productUrl);
   form.append("product_name", productName);
 
   // Không cần truyền thêm header gì cả, Interceptor sẽ nhận ra FormData và xử lý
