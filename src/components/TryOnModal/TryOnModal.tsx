@@ -4,7 +4,6 @@ import {
   ImageOff,
   Info,
   Loader2,
-  Plus,
   Shirt,
   Sparkles,
   UploadCloud,
@@ -13,6 +12,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { showSuccessToast } from "../ui/toast";
 import "./TryOnModal.scss";
 
 import { apiConfig } from "@/services/api";
@@ -269,6 +269,8 @@ export default function TryOnModal({
   // Nút Bắt Đầu
   const handleStart = async () => {
     if (!selected) return;
+    // Nếu đã có kết quả hoàn chỉnh thì chặn không cho bắt đầu lại
+    if (status === "completed" && resultUrl) return;
 
     setError(null);
     setResultUrl(null);
@@ -328,6 +330,7 @@ export default function TryOnModal({
             setStatus("completed");
             stopProgress(100);
             setResultUrl(message.result_url);
+            showSuccessToast("Thử đồ thành công — kết quả đã sẵn sàng");
             ws.close();
           }
         } catch {
@@ -355,7 +358,8 @@ export default function TryOnModal({
   const isProcessing =
     status === "validating" || status === "uploading" || status === "pending";
   const resultReady = status === "completed" && resultUrl !== null;
-  const isButtonDisabled = !selected || isProcessing;
+  const isButtonDisabled =
+    !selected || isProcessing || (status === "completed" && resultUrl !== null);
 
   let processingText = "Bụt đang chuẩn bị...";
   if (status === "validating") processingText = "Đang kiểm tra vóc dáng...";
@@ -413,13 +417,13 @@ export default function TryOnModal({
                           </p>
                         </div>
                       </div>
-                      <button
+                      {/* <button
                         onClick={() => setCurrentView("new_try_on")}
                         className="tryon-modal__primary-btn"
                       >
                         <Plus className="tryon-modal__primary-btn-icon" />
                         Thử đồ mới
-                      </button>
+                      </button> */}
                     </div>
                   </div>
 
@@ -474,14 +478,14 @@ export default function TryOnModal({
                           <p className="tryon-modal__history-empty-desc">
                             Hãy thử đồ để xem kết quả tại đây.
                           </p>
-                          <button
+                          {/* <button
                             onClick={() => setCurrentView("new_try_on")}
                             className="tryon-modal__primary-btn"
                             type="button"
                           >
                             <Plus className="tryon-modal__primary-btn-icon" />
                             Thử đồ mới
-                          </button>
+                          </button> */}
                         </div>
                       )}
 
@@ -848,7 +852,11 @@ export default function TryOnModal({
                         <Sparkles
                           className={`tryon-modal__start-btn-icon ${isButtonDisabled ? "tryon-modal__start-btn-icon--disabled" : "tryon-modal__start-btn-icon--active"}`}
                         />
-                        {isProcessing ? "Đang xử lý..." : "Bắt Đầu Thử Đồ"}
+                        {isProcessing
+                          ? "Đang xử lý..."
+                          : resultReady
+                            ? "Hoàn thành"
+                            : "Bắt Đầu Thử Đồ"}
                       </button>
                     </div>
                   </div>

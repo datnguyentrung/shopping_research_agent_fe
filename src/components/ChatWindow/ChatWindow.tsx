@@ -332,49 +332,30 @@ export default function ChatWindow({
                                       </code>
                                     );
                                   },
-                                  a: ({ href, children }) => {
-                                    const modifiedChildren = React.Children.map(
-                                      children,
-                                      (child) => {
-                                        if (React.isValidElement(child)) {
-                                          const element =
-                                            child as React.ReactElement<{
-                                              node?: { tagName?: string };
-                                              parentHref?: string;
-                                            }>;
-                                          if (
-                                            element.props?.node?.tagName ===
-                                            "img"
-                                          ) {
-                                            return React.cloneElement(element, {
-                                              parentHref: href,
-                                            });
-                                          }
-                                        }
-                                        return child;
-                                      },
-                                    );
-
-                                    return (
-                                      <a
-                                        href={href}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                      >
-                                        {modifiedChildren}
-                                      </a>
-                                    );
-                                  },
-                                  img: ({
-                                    src,
-                                    alt,
-                                    parentHref,
-                                  }: {
-                                    src?: string;
-                                    alt?: string;
-                                    parentHref?: string;
-                                  }) => {
+                                  a: ({ href, children }) => (
+                                    <a
+                                      href={href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      {children}
+                                    </a>
+                                  ),
+                                  // 2. THẺ IMG: Chỉ nhận src và alt tiêu chuẩn, ép kiểu qua ComponentProps để chiều lòng TS
+                                  img: (
+                                    props: React.ComponentPropsWithoutRef<"img">,
+                                  ) => {
+                                    const { src, alt } = props;
                                     if (!src) return null;
+
+                                    // Giải mã dữ liệu từ alt text ("Tên sản phẩm | Link sản phẩm")
+                                    const altParts = alt
+                                      ? alt.split(" | ")
+                                      : [];
+                                    const displayName =
+                                      altParts[0] || "Sản phẩm";
+                                    const finalProductUrl = altParts[1] || ""; // Lấy link xịn từ alt text
+
                                     return (
                                       <div className="chat-window__image-container">
                                         <div className="chat-window__image-grid">
@@ -383,7 +364,7 @@ export default function ChatWindow({
                                           <img
                                             className="chat-window__markdown-image"
                                             src={src}
-                                            alt={alt}
+                                            alt={displayName}
                                           />
 
                                           <div className="chat-window__image-right">
@@ -391,11 +372,11 @@ export default function ChatWindow({
                                               type="button"
                                               className="chat-window__tryon-btn"
                                               onClick={(e) => {
-                                                e.preventDefault(); // QUAN TRỌNG: Ngăn chặn click lan ra thẻ <a> làm mở tab mới
+                                                e.preventDefault();
                                                 setSelectedProduct({
                                                   imgUrl: src,
-                                                  productUrl: parentHref || "", // Lấy href từ thẻ <a> cha truyền xuống
-                                                  name: alt || "Sản phẩm",
+                                                  productUrl: finalProductUrl, // Gửi link xịn lên FastAPI
+                                                  name: displayName,
                                                 });
                                               }}
                                             >
