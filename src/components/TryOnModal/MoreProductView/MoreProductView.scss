@@ -444,7 +444,7 @@
 
 .mpv-main-product {
   flex-shrink: 0;
-  aspect-ratio: 5 / 4;
+  aspect-ratio: 4.3 / 4;
   border-radius: var(--mpv-radius-lg);
   overflow: hidden;
   position: relative;
@@ -452,23 +452,33 @@
   img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    // object-fit: cover;
     display: block;
   }
 }
 
 .mpv-product-title {
   position: absolute;
-  top: 12px;
+  bottom: 12px;
   left: 12px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
+  max-width: min(70%, 320px);
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.94),
+    rgba(255, 255, 255, 0.78)
+  );
   backdrop-filter: blur(6px);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.01em;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 // ─── Right: Empty Panel (no recommendations) ───
@@ -673,6 +683,7 @@
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  flex: 1;
 }
 
 .mpv-cart-name {
@@ -688,6 +699,43 @@
   color: var(--mpv-accent);
   font-size: 12px;
   font-weight: 600;
+}
+
+.mpv-cart-remove {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--mpv-border);
+  background: #fff;
+  color: var(--mpv-muted);
+  display: grid;
+  place-items: center;
+  box-shadow: var(--mpv-shadow);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: rgba(180, 88, 43, 0.5);
+    color: var(--mpv-accent-strong);
+    transform: translateY(-1px);
+    box-shadow: var(--mpv-shadow-hover);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
 }
 
 // ─── Sidebar: Filter Buttons (stacked vertically) ───
@@ -731,7 +779,7 @@
     transform: translateY(-1px);
   }
 
-  &[data-active="true"] {
+  &[data-active="false"] {
     border-color: var(--mpv-accent);
     box-shadow: 0 4px 14px rgba(180, 88, 43, 0.2);
     background: rgba(180, 88, 43, 0.04);

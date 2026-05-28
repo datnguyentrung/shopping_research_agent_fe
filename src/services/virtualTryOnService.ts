@@ -1,3 +1,4 @@
+import type { PersonalizedRecommendationResponse } from "../types/recommendation.types";
 import type { TryOnHistoryItem } from "../types/vto.types";
 import axiosInstance from "./axiosInstance";
 
@@ -21,5 +22,23 @@ export const fireTryOnRequest = async (
 
 export const fetchTryOnHistory = async (): Promise<TryOnHistoryItem[]> => {
   const response = await axiosInstance.get("/vto-history");
+  return response.data;
+};
+
+export const recommendPersonalizedProducts = async (
+  personImage: string,
+  productImageUrl?: string,
+  productName?: string,
+): Promise<PersonalizedRecommendationResponse[]> => {
+  const form = new FormData();
+  form.append("person_image_url", personImage);
+  if (productImageUrl) {
+    form.append("product_image_url", productImageUrl);
+  }
+  if (productName) {
+    form.append("product_name", productName);
+  }
+
+  const response = await axiosInstance.post("/recommend", form);
   return response.data;
 };

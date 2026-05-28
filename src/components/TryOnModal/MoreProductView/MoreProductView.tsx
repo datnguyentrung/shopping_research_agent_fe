@@ -1,45 +1,19 @@
 import { useMemo, useState, type SVGProps } from "react";
 
+import { Search } from "lucide-react";
+import { recommendPersonalizedProducts } from "../../../services/virtualTryOnService";
 import type { CapturedData } from "../../../types";
-import type { PersonalizedRecommendationResponse } from "../../../types/recommendation.types";
+import type {
+  PersonalizedRecommendationResponse,
+  ProductCategory,
+} from "../../../types/recommendation.types";
 import type { TryOnHistoryItem } from "../../../types/vto.types";
 import "./MoreProductView.scss";
 
-const productItems = [
-  {
-    id: "sp-01",
-    name: "Áo sơ mi Linen",
-    price: "1.250.000đ",
-    image:
-      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "sp-02",
-    name: "Áo blazer phủ cát",
-    price: "2.480.000đ",
-    image:
-      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "sp-03",
-    name: "Quần tây đứng dáng",
-    price: "1.380.000đ",
-    image:
-      "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "sp-04",
-    name: "Bộ phối toàn thân",
-    price: "3.120.000đ",
-    image:
-      "https://images.unsplash.com/photo-1463100099107-aa0980c362e6?auto=format&fit=crop&w=600&q=80",
-  },
-];
-
 const filterItems = [
-  { id: "ao", label: "Áo", active: true, Icon: ShirtIcon },
-  { id: "quan", label: "Quần", active: false, Icon: PantsIcon },
-  { id: "toan-than", label: "Toàn thân", active: false, Icon: FullBodyIcon },
+  { id: "Upper-body", label: "Áo", active: true, Icon: ShirtIcon },
+  { id: "Lower-body", label: "Quần", active: false, Icon: PantsIcon },
+  { id: "Full-body", label: "Toàn thân", active: false, Icon: FullBodyIcon },
 ];
 
 interface MoreProductViewProps {
@@ -57,7 +31,11 @@ export default function MoreProductView({
   cartCount,
 }: MoreProductViewProps) {
   const [mode, setMode] = useState<"cart" | "tryon">("tryon");
-
+  const [productCategory, setProductCategory] =
+    useState<ProductCategory | null>(null);
+  const [productSelected, setProductSelected] = useState<CapturedData | null>(
+    null,
+  );
   const [extraProducts, setExtraProducts] = useState<CapturedData[]>([]);
   const [hiddenBaseId, setHiddenBaseId] = useState<string | number | null>(
     null,
@@ -107,6 +85,43 @@ export default function MoreProductView({
   const resolvedCartCount =
     typeof cartCount === "number" ? cartCount : productShoppings.length;
 
+  const handleGetRecommendations = () => {
+    // Gọi API lấy sản phẩm gợi ý dựa trên item hiện tại
+    recommendPersonalizedProducts(
+      item.imageUrl,
+      item.productImageUrl,
+      item.productName,
+    )
+      .then((products) => {
+        const initialCategory = products?.[0]?.productCategory ?? null;
+
+        setRecommendProducts(products);
+        setProductCategory(initialCategory);
+        setProductSelected(
+          products
+            ? (products.filter(
+                (res) => res.productCategory === initialCategory,
+              )?.[0]?.products?.[0] ?? null)
+            : null,
+        );
+        setMode("tryon");
+      })
+      .catch((error) => {
+        console.error("Lỗi khi lấy sản phẩm gợi ý:", error);
+      });
+  };
+
+  const listRecommend = useMemo(() => {
+    if (recommendProducts.length === 0) {
+      return [];
+    }
+    return (
+      recommendProducts.filter(
+        (rec) => rec.productCategory === productCategory,
+      )?.[0]?.products ?? []
+    );
+  }, [recommendProducts, productCategory]);
+
   // Ví dụ hàm thêm sản phẩm vào list (người dùng chủ động)
   const addProduct = (newProduct: CapturedData) => {
     setExtraProducts((prev) => {
@@ -130,6 +145,15 @@ export default function MoreProductView({
     }
 
     setExtraProducts((prev) => prev.filter((p) => p.productId !== id));
+  };
+
+  const handleVTOAction = () => {
+    if (!productSelected) {
+      return;
+    }
+    addProduct(productSelected); // Giả sử sản phẩm được chọn sẽ được thêm vào list
+    // Xử lý hành động thử đồ với productSelected
+    console.log("Thử đồ với sản phẩm:", productSelected);
   };
 
   const hasRecommendations = recommendProducts.length > 0;
@@ -195,12 +219,30 @@ export default function MoreProductView({
 
         {/* ─── Center: Main actions ─── */}
         <section className="mpv-zone mpv-center" aria-label="Hành động chính">
-          <button className="mpv-primary-btn" type="button">
-            <span className="mpv-btn-icon" aria-hidden="true">
-              <SparkleIcon />
-            </span>
-            Thử đồ
-          </button>
+          {hasRecommendations ? (
+            <button
+              className="mpv-primary-btn"
+              type="button"
+              onClick={handleVTOAction}
+            >
+              <span className="mpv-btn-icon" aria-hidden="true">
+                <SparkleIcon />
+              </span>
+              Thử đồ
+            </button>
+          ) : (
+            <button
+              className="mpv-primary-btn"
+              type="button"
+              onClick={handleGetRecommendations}
+            >
+              <span className="mpv-btn-icon" aria-hidden="true">
+                <Search />
+              </span>
+              Tìm sản phẩm phù hợp
+            </button>
+          )}
+
           <button className="mpv-secondary-btn" type="button">
             <span className="mpv-btn-icon" aria-hidden="true">
               <CartIcon />
@@ -216,14 +258,16 @@ export default function MoreProductView({
               <>
                 <div className="mpv-card mpv-main-product">
                   <img
-                    src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80"
-                    alt="Sản phẩm 2"
+                    src={productSelected?.mainImage}
+                    alt={productSelected?.name}
                     width={720}
                     height={900}
                     loading="eager"
                     fetchPriority="high"
                   />
-                  <div className="mpv-product-title">Sản phẩm 2</div>
+                  <div className="mpv-product-title">
+                    {productSelected?.name}
+                  </div>
                 </div>
 
                 <div
@@ -231,15 +275,16 @@ export default function MoreProductView({
                   role="list"
                   aria-label="Sản phẩm gợi ý"
                 >
-                  {productItems.map((product) => (
+                  {listRecommend.map((product) => (
                     <article
                       className="mpv-card mpv-product-card"
                       role="listitem"
-                      key={product.id}
+                      key={product.productId}
+                      onClick={() => setProductSelected(product)}
                     >
                       <div className="mpv-product-image">
                         <img
-                          src={product.image}
+                          src={product.mainImage}
                           alt={product.name}
                           loading="lazy"
                         />
@@ -247,7 +292,9 @@ export default function MoreProductView({
                       <div className="mpv-product-info">
                         <span className="mpv-product-name">{product.name}</span>
                         <span className="mpv-product-price">
-                          {product.price}
+                          {product.priceCurrent
+                            ? `${product.priceCurrent.toLocaleString("vi-VN")}đ`
+                            : "—"}
                         </span>
                       </div>
                     </article>
@@ -256,7 +303,9 @@ export default function MoreProductView({
               </>
             ) : (
               <div className="mpv-card mpv-empty-panel" aria-live="polite">
-                <div className="mpv-empty-title">Mô tả lần thử đồ</div>
+                <div className="mpv-empty-title">
+                  Bạn phù hợp với sản phẩm như thế nào ?
+                </div>
                 <p className="mpv-empty-desc">
                   {item.description
                     ?.replace(/\\n/g, "\n")
@@ -290,6 +339,7 @@ export default function MoreProductView({
                     typeof product.priceCurrent === "number"
                       ? `${product.priceCurrent.toLocaleString("vi-VN")}đ`
                       : "—";
+                  const isRemovable = product.productId !== undefined;
 
                   return (
                     <article
@@ -315,6 +365,20 @@ export default function MoreProductView({
                         </a>
                         <span className="mpv-cart-price">{priceLabel}</span>
                       </div>
+                      <button
+                        className="mpv-cart-remove"
+                        type="button"
+                        aria-label="Xóa sản phẩm"
+                        aria-disabled={!isRemovable}
+                        disabled={!isRemovable}
+                        onClick={() => {
+                          if (product.productId !== undefined) {
+                            removeProduct(product.productId);
+                          }
+                        }}
+                      >
+                        <TrashIcon aria-hidden="true" />
+                      </button>
                     </article>
                   );
                 })}
@@ -376,23 +440,30 @@ export default function MoreProductView({
 
           {recommendProducts.length > 0 && (
             <div className="mpv-filter-stack">
-              {filterItems.map((filter) => (
-                <div className="mpv-filter-item" key={filter.id}>
-                  <button
-                    className="mpv-filter-btn"
-                    type="button"
-                    data-active={filter.active}
-                    aria-pressed={filter.active}
-                    aria-label={`Danh mục ${filter.label}`}
-                  >
-                    <filter.Icon
-                      className="mpv-filter-icon"
-                      aria-hidden="true"
-                    />
-                  </button>
-                  <span className="mpv-filter-label">{filter.label}</span>
-                </div>
-              ))}
+              {filterItems.map((filter) => {
+                const isActive = filter.id === productCategory;
+
+                return (
+                  <div className="mpv-filter-item" key={filter.id}>
+                    <button
+                      className="mpv-filter-btn"
+                      type="button"
+                      data-active={isActive}
+                      aria-pressed={isActive}
+                      aria-label={`Danh mục ${filter.label}`}
+                      onClick={() =>
+                        setProductCategory(filter.id as ProductCategory)
+                      }
+                    >
+                      <filter.Icon
+                        className="mpv-filter-icon"
+                        aria-hidden="true"
+                      />
+                    </button>
+                    <span className="mpv-filter-label">{filter.label}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </aside>
@@ -462,6 +533,24 @@ function SaveIcon(props: SVGProps<SVGSVGElement>) {
       <path d="M5 4h12l2 2v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
       <path d="M8 4v6h8V4" />
       <path d="M8 17h8" />
+    </svg>
+  );
+}
+
+function TrashIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      {...props}
+    >
+      <path d="M4 7h16" />
+      <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+      <path d="M7 7l1 12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-12" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
     </svg>
   );
 }
