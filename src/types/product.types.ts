@@ -13,25 +13,26 @@ export interface ShopInfo {
 
 // Dữ liệu sản phẩm được trích xuất từ các nền tảng thương mại điện tử
 export interface CapturedData {
-  platform: string;
-  productId: string | number;
-  name: string;
+  platform?: string;
+  productId?: string | number;
+  productUrl?: string;
+  name?: string;
 
   // Giá hiện tại và giá gốc (nếu có) để hiển thị thông tin giảm giá
-  priceCurrent: number;
+  priceCurrent?: number;
   priceOriginal?: number;
-  currency: string;
+  currency?: string;
 
   // URL hình ảnh chính của sản phẩm
-  mainImage: string;
+  mainImage?: string;
 
   // Đánh giá trung bình và số lượng đánh giá để hiển thị thông tin đánh giá
-  ratingStar: number;
-  ratingCount: number;
+  ratingStar?: number;
+  ratingCount?: number;
   soldCount?: number;
 
   // Thông tin về shop bán sản phẩm
-  shop: ShopInfo;
+  shop?: ShopInfo;
 
   // Các biến thể của sản phẩm (nếu có), ví dụ: màu sắc, kích thước, v.v.
   tierVariations?: TierVariation[];

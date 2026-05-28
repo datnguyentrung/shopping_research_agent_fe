@@ -1,5 +1,7 @@
-import type { SVGProps } from "react";
+import { useMemo, useState, type SVGProps } from "react";
 
+import type { CapturedData } from "../../../types";
+import type { PersonalizedRecommendationResponse } from "../../../types/recommendation.types";
 import type { TryOnHistoryItem } from "../../../types/vto.types";
 import "./MoreProductView.scss";
 
@@ -45,13 +47,94 @@ interface MoreProductViewProps {
   item: TryOnHistoryItem;
   onBack?: () => void;
   onClose?: () => void;
+  cartCount?: number;
 }
 
 export default function MoreProductView({
   item,
   onBack,
   onClose,
+  cartCount,
 }: MoreProductViewProps) {
+  const [mode, setMode] = useState<"cart" | "tryon">("tryon");
+
+  const [extraProducts, setExtraProducts] = useState<CapturedData[]>([]);
+  const [hiddenBaseId, setHiddenBaseId] = useState<string | number | null>(
+    null,
+  );
+  const [recommendProducts, setRecommendProducts] = useState<
+    PersonalizedRecommendationResponse[]
+  >([]);
+
+  const baseProduct = useMemo<CapturedData | null>(() => {
+    if (!item) {
+      return null;
+    }
+
+    return {
+      productId: item.id,
+      productUrl: item.productPath,
+      name: item.productName,
+      mainImage: item.productImageUrl,
+      priceCurrent: item.productPrice,
+    };
+  }, [item]);
+
+  const productShoppings = useMemo(() => {
+    const list: CapturedData[] = [];
+    const seen = new Set<string | number>();
+
+    if (baseProduct && hiddenBaseId !== baseProduct.productId) {
+      list.push(baseProduct);
+      if (baseProduct.productId !== undefined) {
+        seen.add(baseProduct.productId);
+      }
+    }
+
+    extraProducts.forEach((product) => {
+      const productId = product.productId;
+      if (productId === undefined || !seen.has(productId)) {
+        list.push(product);
+        if (productId !== undefined) {
+          seen.add(productId);
+        }
+      }
+    });
+
+    return list;
+  }, [baseProduct, extraProducts, hiddenBaseId]);
+
+  const resolvedCartCount =
+    typeof cartCount === "number" ? cartCount : productShoppings.length;
+
+  // Ví dụ hàm thêm sản phẩm vào list (người dùng chủ động)
+  const addProduct = (newProduct: CapturedData) => {
+    setExtraProducts((prev) => {
+      const newId = newProduct.productId;
+      if (
+        newId !== undefined &&
+        prev.some((item) => item.productId === newId)
+      ) {
+        return prev;
+      }
+
+      return [...prev, newProduct];
+    });
+  };
+
+  // Ví dụ hàm xóa sản phẩm khỏi list
+  const removeProduct = (id: string | number) => {
+    if (baseProduct?.productId === id) {
+      setHiddenBaseId(id);
+      return;
+    }
+
+    setExtraProducts((prev) => prev.filter((p) => p.productId !== id));
+  };
+
+  const hasRecommendations = recommendProducts.length > 0;
+  const isCompactLayout = mode === "tryon" && !hasRecommendations;
+
   return (
     <div className="mpv-frame">
       <div className="mpv-frame-header">
@@ -78,7 +161,10 @@ export default function MoreProductView({
         </button>
       </div>
 
-      <div className="more-product-view">
+      <div
+        className="more-product-view"
+        data-layout={isCompactLayout ? "compact" : "full"}
+      >
         {/* ─── Left: Customer photo + actions ─── */}
         <section className="mpv-zone mpv-left" aria-label="Khu vực khách hàng">
           <div className="mpv-card mpv-customer-photo">
@@ -125,57 +211,190 @@ export default function MoreProductView({
 
         {/* ─── Right: Main product + product grid (vertical-only scroll) ─── */}
         <section className="mpv-zone mpv-right" aria-label="Sản phẩm chính">
-          <div className="mpv-card mpv-main-product">
-            <img
-              src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80"
-              alt="Sản phẩm 2"
-              width={720}
-              height={900}
-              loading="eager"
-              fetchPriority="high"
-            />
-            <div className="mpv-product-title">Sản phẩm 2</div>
-          </div>
+          {mode === "tryon" ? (
+            hasRecommendations ? (
+              <>
+                <div className="mpv-card mpv-main-product">
+                  <img
+                    src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80"
+                    alt="Sản phẩm 2"
+                    width={720}
+                    height={900}
+                    loading="eager"
+                    fetchPriority="high"
+                  />
+                  <div className="mpv-product-title">Sản phẩm 2</div>
+                </div>
 
-          <div
-            className="mpv-product-grid"
-            role="list"
-            aria-label="Sản phẩm gợi ý"
-          >
-            {productItems.map((product) => (
-              <article
-                className="mpv-card mpv-product-card"
-                role="listitem"
-                key={product.id}
+                <div
+                  className="mpv-product-grid"
+                  role="list"
+                  aria-label="Sản phẩm gợi ý"
+                >
+                  {productItems.map((product) => (
+                    <article
+                      className="mpv-card mpv-product-card"
+                      role="listitem"
+                      key={product.id}
+                    >
+                      <div className="mpv-product-image">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="mpv-product-info">
+                        <span className="mpv-product-name">{product.name}</span>
+                        <span className="mpv-product-price">
+                          {product.price}
+                        </span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="mpv-card mpv-empty-panel" aria-live="polite">
+                <div className="mpv-empty-title">Mô tả lần thử đồ</div>
+                <p className="mpv-empty-desc">
+                  {item.description
+                    ?.replace(/\\n/g, "\n")
+                    .split("\n")
+                    .map((line, index) => (
+                      <span
+                        key={index}
+                        style={{ display: "block", marginBottom: "12px" }}
+                      >
+                        🌟 {line}
+                      </span>
+                    ))}
+                </p>
+              </div>
+            )
+          ) : (
+            <div className="mpv-cart" aria-label="Giỏ hàng">
+              <div className="mpv-cart-header">
+                <span className="mpv-cart-title">Giỏ hàng</span>
+                <span className="mpv-cart-count">
+                  {resolvedCartCount} sản phẩm
+                </span>
+              </div>
+              <div
+                className="mpv-cart-list"
+                role="list"
+                aria-label="Danh sách giỏ hàng"
               >
-                <div className="mpv-product-image">
-                  <img src={product.image} alt={product.name} loading="lazy" />
-                </div>
-                <div className="mpv-product-info">
-                  <span className="mpv-product-name">{product.name}</span>
-                  <span className="mpv-product-price">{product.price}</span>
-                </div>
-              </article>
-            ))}
-          </div>
+                {productShoppings.map((product, index) => {
+                  const priceLabel =
+                    typeof product.priceCurrent === "number"
+                      ? `${product.priceCurrent.toLocaleString("vi-VN")}đ`
+                      : "—";
+
+                  return (
+                    <article
+                      className="mpv-card mpv-cart-item"
+                      role="listitem"
+                      key={product.productId ?? `${product.name}-${index}`}
+                    >
+                      <div className="mpv-cart-thumb">
+                        <img
+                          src={product.mainImage ?? ""}
+                          alt={product.name ?? "Sản phẩm"}
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="mpv-cart-info">
+                        <a
+                          href={product.productUrl ?? "#"}
+                          className="mpv-cart-name"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {product.name ?? "Sản phẩm"}
+                        </a>
+                        <span className="mpv-cart-price">{priceLabel}</span>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* ─── Sidebar: Filter buttons stacked vertically ─── */}
-        <aside className="mpv-zone mpv-sidebar" aria-label="Bộ lọc danh mục">
-          {filterItems.map((filter) => (
-            <div className="mpv-filter-item" key={filter.id}>
-              <button
-                className="mpv-filter-btn"
-                type="button"
-                data-active={filter.active}
-                aria-pressed={filter.active}
-                aria-label={`Danh mục ${filter.label}`}
-              >
-                <filter.Icon className="mpv-filter-icon" aria-hidden="true" />
-              </button>
-              <span className="mpv-filter-label">{filter.label}</span>
+        <aside
+          className="mpv-zone mpv-sidebar"
+          aria-label="Chế độ hiển thị và bộ lọc"
+        >
+          <div
+            className="mpv-mode-switch"
+            data-mode={mode}
+            role="group"
+            aria-label="Chế độ hiển thị"
+          >
+            <button
+              className="mpv-mode-option"
+              type="button"
+              data-active={mode === "cart"}
+              aria-pressed={mode === "cart"}
+              onClick={() => setMode("cart")}
+            >
+              {mode === "cart" && (
+                <span className="mpv-mode-icon" aria-hidden="true">
+                  <SparkleIcon />
+                </span>
+              )}
+              {mode === "tryon" && (
+                <span className="mpv-mode-label">Giỏ hàng</span>
+              )}
+            </button>
+            <button
+              className="mpv-mode-option"
+              type="button"
+              data-active={mode === "tryon"}
+              aria-pressed={mode === "tryon"}
+              onClick={() => setMode("tryon")}
+            >
+              {mode === "tryon" && (
+                <span className="mpv-mode-icon" aria-hidden="true">
+                  <CartIcon />
+                  {resolvedCartCount > 0 ? (
+                    <span className="mpv-mode-badge" aria-hidden="true">
+                      {resolvedCartCount}
+                    </span>
+                  ) : null}
+                </span>
+              )}
+              {mode === "cart" && (
+                <span className="mpv-mode-label">Thử đồ</span>
+              )}
+            </button>
+            <span className="mpv-mode-indicator" aria-hidden="true" />
+          </div>
+
+          {recommendProducts.length > 0 && (
+            <div className="mpv-filter-stack">
+              {filterItems.map((filter) => (
+                <div className="mpv-filter-item" key={filter.id}>
+                  <button
+                    className="mpv-filter-btn"
+                    type="button"
+                    data-active={filter.active}
+                    aria-pressed={filter.active}
+                    aria-label={`Danh mục ${filter.label}`}
+                  >
+                    <filter.Icon
+                      className="mpv-filter-icon"
+                      aria-hidden="true"
+                    />
+                  </button>
+                  <span className="mpv-filter-label">{filter.label}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </aside>
       </div>
     </div>
