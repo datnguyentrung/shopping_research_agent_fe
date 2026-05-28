@@ -1,6 +1,6 @@
 interface Time {
   createdAt: string | Date;
-  updatedAt: string | Date | null;
+  updatedAt: string | Date;
 }
 
 export interface ConversationResponse extends Time {

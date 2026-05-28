@@ -219,7 +219,7 @@ const axiosInstance = setupInterceptors(
   setupRetry(
     axios.create({
       baseURL: API_BASE_URL,
-      timeout: 15000, // Timeout an toàn (15 giây)
+      timeout: 30000, // Timeout an toàn (15 giây)
     }),
   ),
 );
