@@ -125,7 +125,7 @@
   box-sizing: border-box;
   min-height: 0;
   flex: 1;
-  grid-template-columns: 1fr minmax(0, 0.3fr) minmax(0, 0.9fr) auto;
+  grid-template-columns: 0.6fr minmax(0, 0.4fr) minmax(0, 0.5fr) auto;
   grid-template-areas: "left center right sidebar";
   gap: var(--mpv-gap);
   position: relative;
@@ -157,12 +157,22 @@
   }
 }
 
+.more-product-view[data-center="off"] {
+  grid-template-columns: 1fr minmax(0, 0.9fr) auto;
+  grid-template-areas: "left right sidebar";
+}
+
 // ─── Layout Variants ───
 // Compact layout when TryOn has no recommendations.
 
 .more-product-view[data-layout="compact"] {
   grid-template-columns: 1fr minmax(0, 0.3fr) minmax(0, 0.9fr) auto;
   grid-template-areas: "left center right sidebar";
+}
+
+.more-product-view[data-center="off"][data-layout="compact"] {
+  grid-template-columns: 1fr minmax(0, 0.9fr) auto;
+  grid-template-areas: "left right sidebar";
 }
 
 .more-product-view[data-layout="compact"] .mpv-sidebar {
@@ -189,17 +199,195 @@
 
 .mpv-center {
   grid-area: center;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: stretch;
   gap: 12px;
   animation-delay: 0.12s;
 }
 
 .mpv-right {
   grid-area: right;
-  gap: 10px;
+  gap: 12px;
   animation-delay: 0.2s;
   overflow: hidden;
+}
+
+// ─── Right: Action Buttons (attached to main product) ───
+
+.mpv-right-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.mpv-right-actions .mpv-primary-btn,
+.mpv-right-actions .mpv-secondary-btn {
+  max-width: none;
+  // flex: 1 1 140px;
+}
+
+// ─── Center: AI Stylist Note ───
+
+.mpv-ai-note {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 12px 28px rgba(180, 88, 43, 0.16),
+    0 6px 18px rgba(31, 26, 20, 0.08);
+  overflow: hidden;
+}
+
+.mpv-ai-note::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(
+      circle at 15% 25%,
+      rgba(255, 190, 120, 0.45),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(244, 94, 54, 0.35),
+      transparent 60%
+    ),
+    radial-gradient(
+      circle at 50% 80%,
+      rgba(255, 240, 200, 0.3),
+      transparent 65%
+    );
+  filter: blur(18px);
+  opacity: 0.7;
+  animation: mpv-ai-glow 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.mpv-ai-note[data-typing="false"]::before {
+  opacity: 0.4;
+  animation-play-state: paused;
+}
+
+.mpv-ai-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.mpv-ai-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 6px 16px rgba(180, 88, 43, 0.18);
+  color: var(--mpv-accent-strong);
+}
+
+.mpv-ai-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.mpv-ai-icon[data-animate="true"] svg {
+  animation: mpv-sparkle-spin 1.4s ease-in-out infinite;
+}
+
+.mpv-ai-heading {
+  display: flex;
+  flex-direction: column;
+  // gap: 2px;
+}
+
+.mpv-ai-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.mpv-ai-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mpv-muted);
+}
+
+.mpv-ai-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.mpv-ai-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mpv-accent-strong);
+}
+
+.mpv-ai-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--mpv-ink);
+  white-space: pre-wrap;
+}
+
+.mpv-ai-line {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.mpv-ai-line-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mpv-accent-strong);
+}
+
+.mpv-ai-line-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.mpv-ai-text--muted {
+  color: var(--mpv-muted);
+}
+
+.mpv-keyword {
+  font-weight: 700;
+  background: linear-gradient(90deg, #facc15, #fb923c, #ef4444);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  padding: 0 2px;
+}
+
+.mpv-typing-caret {
+  display: inline-block;
+  width: 6px;
+  height: 1em;
+  margin-left: 4px;
+  border-left: 2px solid var(--mpv-accent);
+  animation: mpv-caret-blink 0.9s steps(2, start) infinite;
+  vertical-align: -1px;
 }
 
 // ─── Sidebar (right edge, filter buttons stacked vertically) ───
@@ -395,15 +583,15 @@
 
 .mpv-primary-btn,
 .mpv-secondary-btn {
-  width: 100%;
-  max-width: 120px;
+  flex: 1 1 auto;
+  min-width: 0;
   border-radius: var(--mpv-radius-md);
   padding: 10px 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.01em;
   cursor: pointer;
@@ -799,6 +987,285 @@
   white-space: nowrap;
 }
 
+// ─── Right: Loading/Streaming Progress Card ───
+
+.mpv-progress-card {
+  flex-shrink: 0;
+  padding: 14px 16px;
+  border-radius: var(--mpv-radius-md);
+  background: linear-gradient(135deg, #f0f4ff 0%, #fafbff 100%);
+  border: 1px solid #e0e7ff;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.06);
+  animation: mpv-progress-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mpv-progress-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.mpv-progress-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: proc-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.mpv-progress-text {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #374151;
+  font-weight: 500;
+  min-height: 1.5em;
+  animation: mpv-text-enter 0.35s ease-out;
+}
+
+.mpv-progress-percent {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2563eb;
+  min-width: 40px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.mpv-progress-track {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: #e0e7ff;
+  overflow: hidden;
+}
+
+.mpv-progress-bar {
+  position: relative;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb 0%, #6d28d9 100%);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  min-width: 4%;
+}
+
+.mpv-progress-stripes {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.18) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.18) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 40px 40px;
+  animation: proc-stripe-slide 0.8s linear infinite;
+}
+
+.mpv-progress-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 100%
+  );
+  animation: proc-shimmer 1.8s ease-in-out infinite;
+}
+
+// ─── Right: Streaming Header (product count indicator) ───
+
+.mpv-streaming-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(180, 88, 43, 0.06);
+  border: 1px solid rgba(180, 88, 43, 0.12);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mpv-accent);
+  flex-shrink: 0;
+  animation: mpv-streaming-header-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+}
+
+// ─── Right: Streaming Product Card (animated entry) ───
+
+.mpv-product-card--streaming {
+  animation: mpv-product-card-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mpv-product-category-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(180, 88, 43, 0.08);
+  color: var(--mpv-accent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-top: 2px;
+}
+
+// ─── Right: Error Card ───
+
+.mpv-error-card {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-radius: var(--mpv-radius-md);
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 500;
+  animation: mpv-progress-enter 0.3s ease-out both;
+}
+
+// ─── Spinner icon on loading button ───
+
+.mpv-spinner-icon {
+  animation: proc-spin 0.8s linear infinite;
+  width: 16px;
+  height: 16px;
+}
+
+.mpv-primary-btn[data-loading="true"] {
+  opacity: 0.85;
+  cursor: wait;
+  pointer-events: none;
+}
+
+// ─── Keyframes for streaming/loading ───
+
+@keyframes proc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes proc-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+@keyframes proc-stripe-slide {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 40px 0;
+  }
+}
+
+@keyframes mpv-progress-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mpv-text-enter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mpv-streaming-header-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes mpv-product-card-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes mpv-ai-glow {
+  0% {
+    opacity: 0.45;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0.45;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes mpv-sparkle-spin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(12deg) scale(1.08);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes mpv-caret-blink {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 // ─── Focus Visible ───
 
 .mpv-outline-btn:focus-visible,
@@ -854,7 +1321,10 @@
   }
 
   .mpv-mode-indicator,
-  .mpv-mode-badge {
+  .mpv-mode-badge,
+  .mpv-ai-note::before,
+  .mpv-ai-icon svg,
+  .mpv-typing-caret {
     transition: none;
     animation: none;
   }
@@ -892,6 +1362,14 @@
     grid-template-areas:
       "left  center sidebar"
       "right right  sidebar";
+  }
+
+  .more-product-view[data-center="off"] {
+    grid-template-columns: 1fr minmax(0, 0.9fr) auto;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "left  right sidebar"
+      "right right sidebar";
   }
 }
 
@@ -936,6 +1414,13 @@
       "right   sidebar";
   }
 
+  .more-product-view[data-center="off"] {
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "left   sidebar"
+      "right  sidebar";
+  }
+
   .mpv-customer-photo {
     min-height: 200px;
     max-height: 320px;
@@ -958,6 +1443,11 @@
   .mpv-primary-btn,
   .mpv-secondary-btn {
     max-width: none;
+  }
+
+  .mpv-right-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .mpv-sidebar {
