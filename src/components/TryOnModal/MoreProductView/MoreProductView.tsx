@@ -346,7 +346,7 @@ export default function MoreProductView({
               <span className="mpv-btn-icon" aria-hidden="true">
                 <CartIcon />
               </span>
-              Thêm sản phẩm
+              Chọn làm sản phẩm gốc
             </button>
             <button className="mpv-outline-btn" type="button">
               <span className="mpv-btn-icon" aria-hidden="true">
