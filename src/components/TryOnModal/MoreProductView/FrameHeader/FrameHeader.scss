@@ -1,0 +1,60 @@
+.mpv-frame-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mpv-frame-btn {
+  border: 1px solid rgba(31, 26, 20, 0.14);
+  background: rgba(255, 255, 255, 0.92);
+  color: #1f1a14;
+  border-radius: 999px;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+
+  &:hover {
+    border-color: rgba(180, 88, 43, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  }
+}
+
+.mpv-frame-btn--icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-content: center;
+}
+
+.mpv-frame-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .mpv-frame-btn {
+    font-size: 11px;
+  }
+
+  .mpv-frame-btn--icon {
+    width: 34px;
+    height: 34px;
+  }
+}
