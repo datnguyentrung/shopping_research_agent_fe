@@ -9,17 +9,19 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
-import { showSuccessToast } from "../../ui/toast";
 import { apiConfig } from "@/services/api";
 import { fireTryOnRequest } from "@/services/virtualTryOnService";
 import { compressImage, validatePose } from "@/utils/validatePose";
-import { dataUrlToBlob, toOrigin, toWebSocketBaseUrl, urlToFile } from "@/utils/vto.utils";
-
 import {
-  LOCALSTORAGE_KEY,
-  PRESET_MODELS,
-} from "../vto.types";
+  dataUrlToBlob,
+  toOrigin,
+  toWebSocketBaseUrl,
+  urlToFile,
+} from "@/utils/vto.utils";
+import { showSuccessToast } from "../../ui/toast";
+
 import type { PersonSource, VtoStatus, VtoWsMessage } from "../vto.types";
+import { LOCALSTORAGE_KEY, PRESET_MODELS } from "../vto.types";
 
 import "./EditorView.scss";
 
@@ -50,6 +52,7 @@ export default function EditorView({
   const [status, setStatus] = useState<VtoStatus>("idle");
   const [progress, setProgress] = useState(0);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [marketingMessage, setMarketingMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -59,9 +62,7 @@ export default function EditorView({
   // Đồng bộ processing state với orchestrator
   useEffect(() => {
     const processing =
-      status === "validating" ||
-      status === "uploading" ||
-      status === "pending";
+      status === "validating" || status === "uploading" || status === "pending";
     onProcessingChange(processing);
   }, [status, onProcessingChange]);
 
@@ -87,6 +88,7 @@ export default function EditorView({
     setStatus("idle");
     setProgress(0);
     setResultUrl(null);
+    setMarketingMessage(null);
     setError(null);
   }, [open]);
 
@@ -153,6 +155,7 @@ export default function EditorView({
 
     setError(null);
     setResultUrl(null);
+    setMarketingMessage(null);
 
     try {
       if (selected.kind === "user") {
@@ -202,14 +205,20 @@ export default function EditorView({
             setStatus("error");
             stopProgress();
             setError(String(message.error));
+            setMarketingMessage(null);
             ws.close();
             return;
+          }
+
+          if (message.marketing_message) {
+            setMarketingMessage(message.marketing_message);
           }
 
           if (message.status === "completed" && message.result_url) {
             setStatus("completed");
             stopProgress(100);
             setResultUrl(message.result_url);
+            setMarketingMessage(message.marketing_message ?? null);
             showSuccessToast("Thử đồ thành công — kết quả đã sẵn sàng");
             ws.close();
           }
@@ -222,6 +231,7 @@ export default function EditorView({
         setStatus("error");
         stopProgress();
         setError("Kết nối may đo bị lỗi. Vui lòng thử lại.");
+        setMarketingMessage(null);
       };
 
       ws.onclose = () => {
@@ -231,6 +241,7 @@ export default function EditorView({
       setStatus("error");
       stopProgress();
       setError(e instanceof Error ? e.message : "Đã có lỗi xảy ra");
+      setMarketingMessage(null);
     }
   };
 
@@ -239,6 +250,7 @@ export default function EditorView({
   const resultReady = status === "completed" && resultUrl !== null;
   const isButtonDisabled =
     !selected || isProcessing || (status === "completed" && resultUrl !== null);
+  const showMarketingMessage = resultReady && Boolean(marketingMessage);
 
   let processingText = "Bụt đang chuẩn bị...";
   if (status === "validating") processingText = "Đang kiểm tra vóc dáng...";
@@ -254,10 +266,7 @@ export default function EditorView({
       className="tryon-modal tryon-modal--editor"
     >
       {showBackButton && (
-        <button
-          onClick={onNavigateToHistory}
-          className="tryon-modal__back-btn"
-        >
+        <button onClick={onNavigateToHistory} className="tryon-modal__back-btn">
           <Shirt className="tryon-modal__back-btn-icon" />
           Kho thử đồ
         </button>
@@ -450,8 +459,8 @@ export default function EditorView({
                     <div className="tryon-modal__hint">
                       <Info className="tryon-modal__hint-icon" />
                       <p className="tryon-modal__hint-text">
-                        Để kết quả tốt nhất: Ảnh rõ nét, đủ ánh sáng, chụp
-                        thẳng toàn thân, không bị che khuất.
+                        Để kết quả tốt nhất: Ảnh rõ nét, đủ ánh sáng, chụp thẳng
+                        toàn thân, không bị che khuất.
                       </p>
                     </div>
                   </motion.div>
@@ -586,6 +595,19 @@ export default function EditorView({
                 alt="Kết quả thử đồ"
                 className="tryon-modal__result-img"
               />
+
+              {showMarketingMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="tryon-modal__result-message"
+                >
+                  <Sparkles className="tryon-modal__result-message-icon" />
+                  <p className="tryon-modal__result-message-text">
+                    {marketingMessage}
+                  </p>
+                </motion.div>
+              )}
 
               <div className="tryon-modal__result-badge">
                 <Sparkles className="tryon-modal__result-badge-icon" />

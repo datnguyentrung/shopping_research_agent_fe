@@ -32,6 +32,7 @@ export type VtoWsMessage = {
   status?: string;
   result_url?: string;
   error?: string | null;
+  marketing_message?: string;
 };
 
 export const LOCALSTORAGE_KEY = "but_user_photo";

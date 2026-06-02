@@ -644,6 +644,38 @@
   filter: drop-shadow(0 14px 30px rgba(15, 23, 42, 0.18));
 }
 
+.tryon-modal__result-message {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: min(70%, 360px);
+  padding: 12px 14px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.tryon-modal__result-message-icon {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: #7c3aed;
+  flex-shrink: 0;
+}
+
+.tryon-modal__result-message-text {
+  margin: 0;
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .tryon-modal__result-badge {
   position: absolute;
   right: 16px;

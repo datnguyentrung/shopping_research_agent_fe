@@ -2,9 +2,18 @@ import { useEffect, useMemo, useRef, useState, type SVGProps } from "react";
 
 import { NotebookPen, Search } from "lucide-react";
 import { useRecommendSSE } from "../../../hooks/useRecommendSSE";
+import { apiConfig } from "../../../services/api";
+import { fireTryOnRequest } from "../../../services/virtualTryOnService";
 import type { CapturedData } from "../../../types";
 import type { ProductCategory } from "../../../types/recommendation.types";
 import type { TryOnHistoryItem } from "../../../types/vto.types";
+import {
+  toOrigin,
+  toWebSocketBaseUrl,
+  urlToFile,
+} from "../../../utils/vto.utils";
+import ConfirmModal from "../../ConfirmModal";
+import type { VtoStatus, VtoWsMessage } from "../vto.types";
 import AiStylistNote from "./AiStylistNote";
 import CustomerPanel from "./CustomerPanel";
 import FrameHeader from "./FrameHeader";
@@ -15,7 +24,7 @@ import RightPanel from "./RightPanel/index";
 const filterItems = [
   { id: "Upper-body", label: "Áo", active: true, Icon: ShirtIcon },
   { id: "Lower-body", label: "Quần", active: false, Icon: PantsIcon },
-  { id: "Full-body", label: "Toàn thân", active: false, Icon: FullBodyIcon },
+  { id: "Other", label: "Khác", active: false, Icon: FullBodyIcon },
 ];
 
 const aiKeywordHints = ["athletic", "tự do", "năng động", "trẻ trung"];
@@ -39,7 +48,7 @@ export default function MoreProductView({
 }: MoreProductViewProps) {
   const [mode, setMode] = useState<"cart" | "tryon">("tryon");
 
-  console.log("Mode:", mode);
+  // console.log("Mode:", mode);
 
   const [productCategory, setProductCategory] =
     useState<ProductCategory | null>(null);
@@ -52,6 +61,18 @@ export default function MoreProductView({
   );
   const [typedReason, setTypedReason] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [activeImageUrl, setActiveImageUrl] = useState(item.imageUrl);
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const [tryOnStatus, setTryOnStatus] = useState<VtoStatus>("idle");
+  const [tryOnProgress, setTryOnProgress] = useState(0);
+  const [tryOnError, setTryOnError] = useState<string | null>(null);
+  const [activeMarketingMessage, setActiveMarketingMessage] = useState<
+    string | null
+  >(null);
+  const [pendingMarketingMessage, setPendingMarketingMessage] = useState<
+    string | null
+  >(null);
+  const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
   // ── Hook SSE với streaming products realtime ──
   const {
     isLoading,
@@ -60,12 +81,15 @@ export default function MoreProductView({
     streamingProducts,
     error,
     startRecommend,
+    reset,
   } = useRecommendSSE();
 
   // console.log("Recommendation Result:", result);
 
   // Ref để auto-scroll sản phẩm mới nhất vào viewport
   const gridRef = useRef<HTMLDivElement>(null);
+  const tryOnWsRef = useRef<WebSocket | null>(null);
+  const tryOnProgressTimerRef = useRef<number | null>(null);
 
   // Auto-scroll khi có sản phẩm mới stream vào
   useEffect(() => {
@@ -74,6 +98,31 @@ export default function MoreProductView({
       el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
     }
   }, [streamingProducts.length]);
+
+  useEffect(() => {
+    setActiveImageUrl(item.imageUrl);
+    setPendingImageUrl(null);
+    setTryOnStatus("idle");
+    setTryOnProgress(0);
+    setTryOnError(null);
+    setActiveMarketingMessage(null);
+    setPendingMarketingMessage(null);
+    tryOnWsRef.current?.close();
+    tryOnWsRef.current = null;
+    if (tryOnProgressTimerRef.current) {
+      window.clearInterval(tryOnProgressTimerRef.current);
+      tryOnProgressTimerRef.current = null;
+    }
+  }, [item]);
+
+  useEffect(() => {
+    return () => {
+      tryOnWsRef.current?.close();
+      if (tryOnProgressTimerRef.current) {
+        window.clearInterval(tryOnProgressTimerRef.current);
+      }
+    };
+  }, []);
 
   const baseProduct = useMemo<CapturedData | null>(() => {
     if (!item) {
@@ -90,8 +139,12 @@ export default function MoreProductView({
   }, [item]);
 
   const reasonText = useMemo(
-    () => result?.reasonRecommend?.trim() ?? "",
-    [result],
+    () =>
+      pendingMarketingMessage?.trim() ??
+      activeMarketingMessage?.trim() ??
+      result?.reasonRecommend?.trim() ??
+      "",
+    [pendingMarketingMessage, activeMarketingMessage, result],
   );
   const shouldTypeReason = !isLoading && reasonText.length > 0;
 
@@ -259,12 +312,95 @@ export default function MoreProductView({
     if (recommendationResponses.length === 0) {
       return [];
     }
+
+    const activeCategory =
+      productCategory ?? recommendationResponses[0]?.productCategory ?? null;
+
+    if (!activeCategory) {
+      return [];
+    }
+
+    const matchedWithProducts = recommendationResponses.find(
+      (rec) =>
+        rec.productCategory === activeCategory && rec.products.length > 0,
+    );
+
+    if (matchedWithProducts) {
+      return matchedWithProducts.products;
+    }
+
     return (
-      recommendationResponses.filter(
-        (rec) => rec.productCategory === productCategory,
-      )?.[0]?.products ?? []
+      recommendationResponses.find(
+        (rec) => rec.productCategory === activeCategory,
+      )?.products ?? []
     );
   }, [recommendationResponses, productCategory]);
+
+  const resolvedProductSelected = useMemo(() => {
+    if (listRecommend.length === 0) {
+      return null;
+    }
+
+    return productSelected ?? listRecommend[0] ?? null;
+  }, [productSelected, listRecommend]);
+
+  const isTryOnProcessing =
+    tryOnStatus === "validating" ||
+    tryOnStatus === "uploading" ||
+    tryOnStatus === "pending";
+  const hasPendingPreview = Boolean(pendingImageUrl);
+  const displayImageUrl = pendingImageUrl ?? activeImageUrl;
+
+  const startTryOnProgress = () => {
+    setTryOnProgress(8);
+    if (tryOnProgressTimerRef.current) {
+      window.clearInterval(tryOnProgressTimerRef.current);
+    }
+
+    tryOnProgressTimerRef.current = window.setInterval(() => {
+      setTryOnProgress((prev) => {
+        if (prev >= 92) return prev;
+        const next = prev + Math.max(1, Math.round((92 - prev) / 12));
+        return Math.min(next, 92);
+      });
+    }, 350);
+  };
+
+  const stopTryOnProgress = (finalValue?: number) => {
+    if (tryOnProgressTimerRef.current) {
+      window.clearInterval(tryOnProgressTimerRef.current);
+    }
+    tryOnProgressTimerRef.current = null;
+    if (typeof finalValue === "number") {
+      setTryOnProgress(finalValue);
+    }
+  };
+
+  const handleCancelTryOn = () => {
+    tryOnWsRef.current?.close();
+    tryOnWsRef.current = null;
+    stopTryOnProgress(0);
+    setTryOnStatus("idle");
+    setTryOnError(null);
+    setPendingImageUrl(null);
+    setPendingMarketingMessage(null);
+  };
+
+  const handleAcceptTryOn = () => {
+    if (!pendingImageUrl) {
+      return;
+    }
+
+    setActiveImageUrl(pendingImageUrl);
+    setPendingImageUrl(null);
+    if (pendingMarketingMessage) {
+      setActiveMarketingMessage(pendingMarketingMessage);
+      setPendingMarketingMessage(null);
+    }
+    setTryOnStatus("idle");
+    setTryOnError(null);
+    setTryOnProgress(0);
+  };
 
   // Ví dụ hàm thêm sản phẩm vào list (người dùng chủ động)
   const addProduct = (newProduct: CapturedData) => {
@@ -291,26 +427,138 @@ export default function MoreProductView({
     setExtraProducts((prev) => prev.filter((p) => p.productId !== id));
   };
 
-  const handleVTOAction = () => {
-    if (!productSelected) {
+  const handleVTOAction = async () => {
+    if (!resolvedProductSelected || isTryOnProcessing || hasPendingPreview) {
       return;
     }
-    addProduct(productSelected); // Giả sử sản phẩm được chọn sẽ được thêm vào list
-    // Xử lý hành động thử đồ với productSelected
-    console.log("Thử đồ với sản phẩm:", productSelected);
+
+    const productImageUrl = resolvedProductSelected.mainImage ?? "";
+    const productUrl = resolvedProductSelected.productUrl ?? "";
+    const productName = resolvedProductSelected.name ?? "";
+
+    if (!productImageUrl || !productUrl || !productName) {
+      setTryOnError("Thiếu thông tin sản phẩm để thử đồ.");
+      return;
+    }
+
+    const personSourceUrl = activeImageUrl || item.imageUrl;
+    if (!personSourceUrl) {
+      setTryOnError("Thiếu ảnh người mẫu để thử đồ.");
+      return;
+    }
+
+    addProduct(resolvedProductSelected);
+    setTryOnError(null);
+    setPendingImageUrl(null);
+    setTryOnStatus("uploading");
+    startTryOnProgress();
+
+    try {
+      const personFile = await urlToFile(personSourceUrl, "tryon-person.png");
+      const json = await fireTryOnRequest(
+        personFile,
+        productImageUrl,
+        productUrl,
+        productName,
+        resolvedProductSelected.priceCurrent,
+      );
+
+      const requestId =
+        json?.request_id ??
+        json?.requestId ??
+        json?.id ??
+        json?.data?.request_id;
+
+      if (!requestId) {
+        throw new Error("Missing request_id");
+      }
+
+      setTryOnStatus("pending");
+
+      const wsBase = toWebSocketBaseUrl(toOrigin(apiConfig.baseUrl));
+      const ws = new WebSocket(`${wsBase}/ws/vto/${requestId}`);
+      tryOnWsRef.current = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data) as VtoWsMessage;
+          if (message.error) {
+            setTryOnStatus("error");
+            stopTryOnProgress();
+            setTryOnError(String(message.error));
+            ws.close();
+            return;
+          }
+
+          if (message.status === "completed" && message.result_url) {
+            setTryOnStatus("completed");
+            stopTryOnProgress(100);
+            setPendingImageUrl(message.result_url);
+            if (message.marketing_message) {
+              setPendingMarketingMessage(message.marketing_message);
+            }
+            ws.close();
+          }
+        } catch {
+          // ignore parse errors
+        }
+      };
+
+      ws.onerror = () => {
+        setTryOnStatus("error");
+        stopTryOnProgress();
+        setTryOnError("Kết nối may đo bị lỗi. Vui lòng thử lại.");
+      };
+
+      ws.onclose = () => {
+        tryOnWsRef.current = null;
+      };
+    } catch (err) {
+      setTryOnStatus("error");
+      stopTryOnProgress();
+      setTryOnError(
+        err instanceof Error ? err.message : "Đã có lỗi xảy ra khi thử đồ.",
+      );
+    }
   };
 
   const hasRecommendations = recommendationResponses.length > 0;
 
-  console.log("hasRecommendations:", hasRecommendations);
+  // console.log("hasRecommendations:", hasRecommendations);
 
   const isCompactLayout = mode === "tryon" && !hasRecommendations && !isLoading;
+
+  let tryOnProcessingText = "Bụt đang chuẩn bị...";
+  if (tryOnStatus === "validating")
+    tryOnProcessingText = "Đang kiểm tra vóc dáng...";
+  if (tryOnStatus === "uploading")
+    tryOnProcessingText = "Đang tải ảnh lên hệ thống...";
+  if (tryOnStatus === "pending")
+    tryOnProcessingText = "Bụt đang cân chỉnh trang phục...";
+
+  const handleCloseRequest = () => {
+    if (result) {
+      setIsCloseConfirmOpen(true);
+      return;
+    }
+
+    onClose?.();
+  };
+
+  const handleConfirmClose = () => {
+    handleCancelTryOn();
+    reset();
+    setProductCategory(null);
+    setProductSelected(null);
+    setIsCloseConfirmOpen(false);
+    onClose?.();
+  };
 
   return (
     <div className="mpv-frame">
       <FrameHeader
         onBack={onBack}
-        onClose={onClose}
+        onClose={handleCloseRequest}
         BackIcon={BackIcon}
         CloseIcon={CloseIcon}
       />
@@ -321,16 +569,24 @@ export default function MoreProductView({
         data-center={hasRecommendations ? "on" : "off"}
       >
         <CustomerPanel
-          imageUrl={item.imageUrl}
+          imageUrl={displayImageUrl}
+          isProcessing={isTryOnProcessing}
+          progress={tryOnProgress}
+          processingText={tryOnProcessingText}
+          hasPendingPreview={hasPendingPreview}
+          tryOnError={tryOnError}
+          onCancelTryOn={handleCancelTryOn}
+          onAcceptTryOn={handleAcceptTryOn}
           UploadIcon={UploadIcon}
           CartIcon={CartIcon}
-          SaveIcon={SaveIcon}
         />
 
         {hasRecommendations && (
           <AiStylistNote
             isTyping={isTyping}
-            isLoading={isLoading}
+            isLoading={
+              isLoading || (isTryOnProcessing && !pendingMarketingMessage)
+            }
             reasonText={reasonText}
             typedReason={typedReason}
             renderHighlightedReason={renderHighlightedReason}
@@ -342,11 +598,12 @@ export default function MoreProductView({
           mode={mode}
           hasRecommendations={hasRecommendations}
           isLoading={isLoading}
+          isTryOnLoading={isTryOnProcessing}
           progress={progress}
           streamingProducts={streamingProducts}
           error={error}
           listRecommend={listRecommend}
-          productSelected={productSelected}
+          productSelected={resolvedProductSelected}
           onSelectProduct={setProductSelected}
           onGetRecommendations={handleGetRecommendations}
           onTryOn={handleVTOAction}
@@ -369,14 +626,30 @@ export default function MoreProductView({
           showFilters={recommendationResponses.length > 0}
           productCategory={productCategory}
           onSelectMode={setMode}
-          onSelectCategory={(category) =>
-            setProductCategory(category as ProductCategory)
-          }
+          onSelectCategory={(category) => {
+            const nextCategory = category as ProductCategory;
+            if (nextCategory !== productCategory) {
+              setProductSelected(null);
+            }
+            setProductCategory(nextCategory);
+          }}
           filterItems={filterItems}
           SparkleIcon={SparkleIcon}
           CartIcon={CartIcon}
         />
       </div>
+
+      <ConfirmModal
+        open={isCloseConfirmOpen}
+        title="Đóng bảng gợi ý?"
+        description="Nếu đóng bây giờ, dữ liệu gợi ý vừa tìm sẽ không được lưu."
+        cancelText="Hủy"
+        confirmText="Đóng"
+        showSuccessToastOnConfirm={false}
+        showErrorToastOnFail={false}
+        onCancel={() => setIsCloseConfirmOpen(false)}
+        onConfirm={handleConfirmClose}
+      />
     </div>
   );
 }
@@ -442,22 +715,6 @@ function CartIcon(props: SVGProps<SVGSVGElement>) {
       <circle cx="9" cy="20" r="1.5" />
       <circle cx="17" cy="20" r="1.5" />
       <path d="M3 4h2l2.2 10.5a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.5L21 8H7" />
-    </svg>
-  );
-}
-
-function SaveIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.6}
-      {...props}
-    >
-      <path d="M5 4h12l2 2v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
-      <path d="M8 4v6h8V4" />
-      <path d="M8 17h8" />
     </svg>
   );
 }

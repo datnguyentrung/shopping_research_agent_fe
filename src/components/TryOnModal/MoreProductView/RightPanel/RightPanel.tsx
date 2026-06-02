@@ -18,6 +18,7 @@ interface RightPanelProps {
   mode: Mode;
   hasRecommendations: boolean;
   isLoading: boolean;
+  isTryOnLoading: boolean;
   progress: ProgressState;
   streamingProducts: StreamingProduct[];
   error: string | null;
@@ -43,6 +44,7 @@ export default function RightPanel({
   mode,
   hasRecommendations,
   isLoading,
+  isTryOnLoading,
   progress,
   streamingProducts,
   error,
@@ -67,11 +69,17 @@ export default function RightPanel({
     <section className="mpv-zone mpv-right" aria-label="Sản phẩm chính">
       <div className="mpv-right-actions">
         {hasRecommendations ? (
-          <button className="mpv-primary-btn" type="button" onClick={onTryOn}>
+          <button
+            className="mpv-primary-btn"
+            type="button"
+            onClick={onTryOn}
+            disabled={isTryOnLoading}
+            data-loading={isTryOnLoading}
+          >
             <span className="mpv-btn-icon" aria-hidden="true">
               <SparkleIcon />
             </span>
-            Thử đồ
+            {isTryOnLoading ? "Đang thử..." : "Thử đồ"}
           </button>
         ) : (
           <button

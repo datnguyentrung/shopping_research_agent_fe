@@ -118,7 +118,7 @@ export default function ChatWindow({
     name: string;
     price?: number;
   } | null>(null);
-  console.log("Selected product for try-on:", selectedProduct);
+  // console.log("Selected product for try-on:", selectedProduct);
   const safeMessages = messages ?? [];
   const bottomRef = useScrollToBottom(safeMessages);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -306,9 +306,9 @@ export default function ChatWindow({
                                 components={{
                                   pre: ({ children }) => <>{children}</>,
                                   p: ({ children }) => (
-                                    <p className="chat-window__text-paragraph">
+                                    <span className="chat-window__text-paragraph">
                                       {children}
-                                    </p>
+                                    </span>
                                   ),
                                   strong: ({ children }) => (
                                     <strong className="chat-window__text-strong">
@@ -425,9 +425,9 @@ export default function ChatWindow({
                               components={{
                                 pre: ({ children }) => <>{children}</>,
                                 p: ({ children }) => (
-                                  <p className="chat-window__text-paragraph">
+                                  <span className="chat-window__text-paragraph">
                                     {children}
-                                  </p>
+                                  </span>
                                 ),
                                 strong: ({ children }) => (
                                   <strong className="chat-window__text-strong">
