@@ -1,8 +1,8 @@
-import { fetchEventSource } from '@microsoft/fetch-event-source';
+import { fetchEventSource } from "@microsoft/fetch-event-source";
+import type { ChatStreamChunk } from "../types";
 import type { TryOnHistoryItem } from "../types/vto.types";
-import { apiConfig } from './api';
+import { apiConfig } from "./api";
 import axiosInstance, { getAuthHeaders } from "./axiosInstance";
-import type { ChatStreamChunk } from '../types';
 
 // TRONG virtualTryOnService.ts
 export const fireTryOnRequest = async (
@@ -10,12 +10,24 @@ export const fireTryOnRequest = async (
   productImageUrl: string,
   productUrl: string,
   productName: string,
+  productPrice?: number,
 ) => {
+  console.log("Đang gửi yêu cầu try-on với dữ liệu:", {
+    personFile,
+    productImageUrl,
+    productUrl,
+    productName,
+    productPrice,
+  });
+
   const form = new FormData();
   form.append("person_image_file", personFile); // Đảm bảo tên biến ở đây KHỚP VỚI FASTAPI nha
   form.append("product_file_path", productImageUrl);
   form.append("product_url", productUrl);
   form.append("product_name", productName);
+  if (productPrice !== undefined) {
+    form.append("product_price", productPrice.toString());
+  }
 
   // Không cần truyền thêm header gì cả, Interceptor sẽ nhận ra FormData và xử lý
   const response = await axiosInstance.post("/fire", form);

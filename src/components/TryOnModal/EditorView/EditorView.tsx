@@ -27,6 +27,7 @@ interface EditorViewProps {
   productImageUrl: string;
   productUrl: string;
   productName: string;
+  productPrice?: number;
   showBackButton: boolean;
   onNavigateToHistory: () => void;
   onProcessingChange: (isProcessing: boolean) => void;
@@ -37,6 +38,7 @@ export default function EditorView({
   productImageUrl,
   productUrl,
   productName,
+  productPrice,
   showBackButton,
   onNavigateToHistory,
   onProcessingChange,
@@ -174,6 +176,7 @@ export default function EditorView({
         productImageUrl,
         productUrl,
         productName,
+        productPrice,
       );
 
       const requestId =

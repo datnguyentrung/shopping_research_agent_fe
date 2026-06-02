@@ -15,6 +15,7 @@ interface TryOnModalProps {
   productImageUrl: string;
   productUrl: string;
   productName?: string;
+  productPrice?: number;
   defaultView?: "history" | "new_try_on";
 }
 
@@ -24,6 +25,7 @@ export default function TryOnModal({
   productImageUrl,
   productUrl,
   productName = "Sản phẩm đang chọn",
+  productPrice,
   defaultView = "new_try_on",
 }: TryOnModalProps) {
   return (
@@ -36,6 +38,7 @@ export default function TryOnModal({
           productImageUrl={productImageUrl}
           productUrl={productUrl}
           productName={productName}
+          productPrice={productPrice}
           defaultView={defaultView}
         />
       )}
@@ -49,6 +52,7 @@ function TryOnModalContent({
   productImageUrl,
   productUrl,
   productName = "Sản phẩm đang chọn",
+  productPrice,
   defaultView = "new_try_on",
 }: TryOnModalProps) {
   const [currentView, setCurrentView] = useState<
@@ -111,6 +115,7 @@ function TryOnModalContent({
               productImageUrl={productImageUrl}
               productUrl={productUrl}
               productName={productName}
+              productPrice={productPrice}
               showBackButton={defaultView === "history"}
               onNavigateToHistory={() => setCurrentView("history")}
               onProcessingChange={handleProcessingChange}

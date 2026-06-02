@@ -116,7 +116,9 @@ export default function ChatWindow({
     imgUrl: string;
     productUrl: string;
     name: string;
+    price?: number;
   } | null>(null);
+  console.log("Selected product for try-on:", selectedProduct);
   const safeMessages = messages ?? [];
   const bottomRef = useScrollToBottom(safeMessages);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -356,6 +358,13 @@ export default function ChatWindow({
                                       altParts[0] || "Sản phẩm";
                                     const finalProductUrl = altParts[1] || ""; // Lấy link xịn từ alt text
 
+                                    const rawPrice = altParts[2] || "";
+                                    const parsedPrice =
+                                      parseInt(
+                                        rawPrice.replace(/\D/g, ""),
+                                        10,
+                                      ) || 0;
+
                                     return (
                                       <div className="chat-window__image-container">
                                         <div className="chat-window__image-grid">
@@ -377,6 +386,7 @@ export default function ChatWindow({
                                                   imgUrl: src,
                                                   productUrl: finalProductUrl, // Gửi link xịn lên FastAPI
                                                   name: displayName,
+                                                  price: parsedPrice,
                                                 });
                                               }}
                                             >
@@ -494,6 +504,7 @@ export default function ChatWindow({
           productImageUrl={selectedProduct.imgUrl}
           productUrl={selectedProduct.productUrl}
           productName={selectedProduct.name}
+          productPrice={selectedProduct.price}
         />
       )}
     </>
