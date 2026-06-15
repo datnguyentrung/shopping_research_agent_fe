@@ -2,8 +2,9 @@ import TryOnModal from "@/components/TryOnModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useConversations } from "@/hooks/useConversations";
+import { useConversations, useDeleteConversation } from "@/hooks/useConversations";
 import {
+  EllipsisVertical,
   Gift,
   LoaderCircle,
   LogOut,
@@ -27,6 +28,8 @@ import { formatTimeHM } from "../../utils/format";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "boneyard-js/react";
 import ConfirmModal from "../ConfirmModal";
+import { MiniActionPopover } from "../ui/mini-action-popover";
+import { showComingSoonActionToast } from "../ui/mini-action-popover.toast";
 import "./Sidebar.scss";
 
 const MIN_WIDTH = 268;
@@ -55,6 +58,8 @@ export default function Sidebar({
   const [isTryOnOpen, setIsTryOnOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLogoutPending, setIsLogoutPending] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const deleteMutation = useDeleteConversation();
   const queryClient = useQueryClient();
 
   const openLogoutModal = useCallback(() => setIsLogoutModalOpen(true), []);
@@ -148,6 +153,18 @@ export default function Sidebar({
     : "?";
 
   const handleNewChat = () => navigate("/");
+
+  const cancelDelete = useCallback(() => setDeleteTarget(null), []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget || deleteMutation.isPending) return;
+    await deleteMutation.mutateAsync(deleteTarget);
+    // Nếu đang xem đoạn chat bị xóa → về trang chat mới
+    if (activeChat === deleteTarget) {
+      navigate("/");
+    }
+    setDeleteTarget(null);
+  }, [deleteTarget, deleteMutation, activeChat, navigate]);
 
   // --- Drag-to-resize logic ---
   const handlePointerDown = useCallback(
@@ -297,7 +314,7 @@ export default function Sidebar({
                           new Date(a.updatedAt).getTime(),
                       )
                       .map((chat: ConversationResponse) => (
-                        <button
+                        <div
                           key={chat.id}
                           onClick={() => navigate(`/app/${chat.id}`)}
                           className={`chat-sidebar__chat-item ${
@@ -305,6 +322,7 @@ export default function Sidebar({
                               ? "chat-sidebar__chat-item--active"
                               : ""
                           }`}
+                          style={{ cursor: "pointer" }}
                         >
                           <MessageSquare className="chat-sidebar__chat-item-icon" />
                           <span className="chat-sidebar__chat-item-title">
@@ -313,7 +331,41 @@ export default function Sidebar({
                           <span className="chat-sidebar__chat-item-time">
                             {formatTimeHM(chat.createdAt)}
                           </span>
-                        </button>
+
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <MiniActionPopover
+                              triggerClassName={
+                                "chat-sidebar__chat-item-action"
+                              }
+                              contentClassName={
+                                "chat-sidebar__chat-item-popover"
+                              }
+                              actions={[
+                                { id: "info", label: "Thông tin" },
+                                { id: "delete", label: "Xóa đoạn chat" },
+                              ]}
+                              onActionSelect={(action) => {
+                                switch (action) {
+                                  case "info":
+                                    showComingSoonActionToast(
+                                      "Thông tin",
+                                      "info",
+                                    );
+                                    break;
+                                  case "delete":
+                                    setDeleteTarget(chat.id);
+                                    break;
+                                  default:
+                                    break;
+                                }
+                              }}
+                            >
+                              <div className="chat-sidebar__rounded-btn">
+                                <EllipsisVertical size={16} />
+                              </div>
+                            </MiniActionPopover>
+                          </div>
+                        </div>
                       ))}
 
                     {/* Sentinel cho infinite scroll (authenticated) */}
@@ -569,6 +621,20 @@ export default function Sidebar({
         errorToastMessage="Đăng xuất thất bại. Vui lòng thử lại."
         onCancel={cancelLogout}
         onConfirm={confirmLogout}
+      />
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Bạn muốn xoá cuộc trò chuyện?"
+        description="Thao tác này sẽ xoá các câu lệnh, câu trả lời và ý kiến phản hồi khỏi Hoạt động của bạn trên Các ứng dụng Bụt, cũng như mọi nội dung bạn đã tạo."
+        cancelText="Hủy"
+        confirmText="Xóa"
+        loadingText="Đang xóa..."
+        isLoading={deleteMutation.isPending}
+        successToastMessage="Đã xóa đoạn chat"
+        errorToastMessage="Xóa đoạn chat thất bại. Vui lòng thử lại."
+        onCancel={cancelDelete}
+        onConfirm={confirmDelete}
       />
     </>
   );

@@ -23,7 +23,7 @@
 // overrides to uniform on desktop (centered card).
 
 .modal {
-  width: min(100%, 420px);
+  width: min(100%, 600px);
   // Mobile: match bottom-sheet top-only radius
   border-radius: $radius-2xl $radius-2xl 0 0;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -76,7 +76,7 @@
 // ── Footer ──────────────────────────────────────────────────
 
 .footer {
-  margin-top: $space-4;
+  margin-top: $space-8;
   display: flex;
   justify-content: flex-end;
   gap: $space-3;

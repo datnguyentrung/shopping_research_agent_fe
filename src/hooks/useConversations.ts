@@ -1,6 +1,6 @@
 // hooks/useConversations.ts
-import { fetchConversations } from "@services/conversationService";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { deleteConversation, fetchConversations } from "@services/conversationService";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { GetConversationsParams } from '@/types';
 
 export const useConversations = (params: GetConversationsParams) => {
@@ -23,5 +23,16 @@ export const useConversations = (params: GetConversationsParams) => {
     refetchOnWindowFocus: false,
 
     enabled: !!params.user_id,
+  });
+};
+
+export const useDeleteConversation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteConversation,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
   });
 };

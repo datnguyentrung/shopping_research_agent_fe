@@ -12,3 +12,7 @@ export const fetchConversations = async (
   const response = await axiosInstance.get("/conversations", { params });
   return response.data;
 };
+
+export const deleteConversation = async (conversationId: string): Promise<void> => {
+  await axiosInstance.delete(`/conversations/${conversationId}`);
+}
