@@ -56,11 +56,19 @@ export default function A2UIRenderer({
   }
 
   if (a2uiPayload.type === "a2ui_questionnaire") {
+    const rawOptions = a2uiPayload.data.options || [];
+    const normalizedOptions = rawOptions.map((opt: any) => {
+      if (typeof opt === "string") {
+        return { id: opt, label: opt };
+      }
+      return opt;
+    });
+
     return (
       <A2UIQuestionnaire
-        title={a2uiPayload.data.title}
-        options={a2uiPayload.data.options}
-        allowMultiple={a2uiPayload.data.allowMultiple}
+        title={a2uiPayload.data.name}
+        options={normalizedOptions}
+        allowMultiple={!!a2uiPayload.data.allowMultiple}
         onSubmit={(selectedIds) =>
           onSendHiddenMessage("SUBMIT_SURVEY", selectedIds)
         }

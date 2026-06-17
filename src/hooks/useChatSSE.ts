@@ -221,6 +221,7 @@ export const useChatSSE = (
 
   const sendHiddenMessage = useCallback(
     async (action: string, payload: unknown) => {
+      console.log("Current Session ID before sending:", sessionIdRef.current);
       await startStream(
         {
           message: "",

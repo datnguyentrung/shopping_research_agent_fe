@@ -26,7 +26,7 @@ const normalizeQuestionnaireData = (
 ): A2UIQuestionnaireData | null => {
   if (
     !isRecord(data) ||
-    typeof data.title !== "string" ||
+    (typeof data.title !== "string" && typeof data.name !== "string") ||
     !Array.isArray(data.options)
   ) {
     return null;
@@ -58,7 +58,7 @@ const normalizeQuestionnaireData = (
   const allowMultipleRaw = data.allowMultiple ?? data.allow_multiple;
 
   return {
-    title: data.title,
+    name: (data.name as string) ?? (data.title as string),
     statusText:
       typeof data.statusText === "string" ? data.statusText : undefined,
     allowMultiple: allowMultipleRaw === true,

@@ -10,7 +10,7 @@ export interface A2UISessionInitData{
 
 // --- 1. DATA CHO FORM KHẢO SÁT (Questionnaire) ---
 export interface A2UIQuestionnaireData {
-  title: string;
+  name: string;
   statusText?: string;
   allowMultiple: boolean;
   options: Array<{
