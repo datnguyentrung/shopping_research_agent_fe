@@ -141,7 +141,7 @@ export default function RightPanel({
                   <div className="mpv-cart-thumb">
                     <img
                       src={product.mainImage ?? ""}
-                      alt={product.name ?? "Sản phẩm"}
+                      alt={product.productUrl ?? "Sản phẩm"}
                       loading="lazy"
                     />
                   </div>
@@ -204,7 +204,7 @@ export default function RightPanel({
                 <div className="mpv-product-image">
                   <img
                     src={product.mainImage}
-                    alt={product.name}
+                    alt={product.productUrl ?? "Sản phẩm"}
                     loading="lazy"
                   />
                 </div>
@@ -264,7 +264,7 @@ export default function RightPanel({
                     <div className="mpv-product-image">
                       <img
                         src={sp.product.mainImage}
-                        alt={sp.product.name}
+                        alt={sp.product.productUrl}
                         loading="lazy"
                       />
                     </div>
