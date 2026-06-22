@@ -4,6 +4,7 @@ import A2UIInteractiveProduct, {
   type ProductFeedbackPayload,
 } from "../A2UIInteractiveProduct";
 import A2UIQuestionnaire from "../A2UIQuestionnaire";
+import A2UIQuestionnaireBatch from "../A2UIQuestionnaireBatch/A2UIQuestionnaireBatch";
 import ProcessingStatus from "../ProcessingStatus";
 import "./A2UIRenderer.scss";
 
@@ -55,9 +56,20 @@ export default function A2UIRenderer({
     );
   }
 
+  if (a2uiPayload.type === "a2ui_questionnaire_batch") {
+    return (
+      <A2UIQuestionnaireBatch
+        questions={a2uiPayload.data.questions}
+        onSubmitAll={(answers) =>
+          onSendHiddenMessage("SUBMIT_ALL_SURVEY", answers)
+        }
+      />
+    );
+  }
+
   if (a2uiPayload.type === "a2ui_questionnaire") {
     const rawOptions = a2uiPayload.data.options || [];
-    const normalizedOptions = rawOptions.map((opt: any) => {
+    const normalizedOptions = rawOptions.map((opt: string | { id: string; label: string }) => {
       if (typeof opt === "string") {
         return { id: opt, label: opt };
       }
@@ -70,7 +82,7 @@ export default function A2UIRenderer({
         options={normalizedOptions}
         allowMultiple={!!a2uiPayload.data.allowMultiple}
         onSubmit={(selectedIds) =>
-          onSendHiddenMessage("SUBMIT_SURVEY", selectedIds)
+          onSendHiddenMessage("SUBMIT_CATEGORY", selectedIds)
         }
         onSkip={() => onSendHiddenMessage("SKIP_SURVEY", {})}
       />

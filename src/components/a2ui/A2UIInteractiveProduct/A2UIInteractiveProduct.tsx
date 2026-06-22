@@ -19,7 +19,8 @@ interface A2UIInteractiveProductProps {
   isLoading: boolean;
 }
 
-const toProductId = (value: string | number) => String(value);
+const toProductId = (value: string | number | undefined) =>
+  value == null ? "" : String(value);
 
 const DEFAULT_REASONS = [
   "Giá",
@@ -246,9 +247,9 @@ function ProductCard({
       <div className="product-card__info">
         <h4 className="product-card__name">{product.name}</h4>
         <p className="product-card__price">
-          {product.priceCurrent.toLocaleString("vi-VN")} {product.currency}
+          {product.priceCurrent?.toLocaleString("vi-VN") ?? ""} {product.currency ?? ""}
         </p>
-        {hasShopName && (
+        {hasShopName && product.shop && (
           <p className="product-card__shop">Shop: {product.shop.shopName}</p>
         )}
       </div>

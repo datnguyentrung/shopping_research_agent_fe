@@ -2,6 +2,7 @@ import type {
   A2UIPayload,
   A2UIProcessingData,
   A2UIProductData,
+  A2UIQuestionnaireBatchData,
   A2UIQuestionnaireData,
   A2UISessionInitData,
 } from "@/types/a2ui.types";
@@ -98,6 +99,32 @@ const normalizeProductData = (data: unknown): A2UIProductData | null => {
   };
 };
 
+const normalizeQuestionnaireBatchData = (
+  data: unknown,
+): A2UIQuestionnaireBatchData | null => {
+  if (!isRecord(data) || !Array.isArray(data.questions)) {
+    return null;
+  }
+
+  const questions = data.questions
+    .map((q: unknown) => {
+      if (!isRecord(q)) return null;
+      const id = q.id ?? q.attribute_id ?? q.name;
+      const name = typeof q.name === "string" ? q.name : null;
+      if (id == null || name === null) return null;
+
+      const rawOptions = q.options ?? [];
+      const options: string[] = Array.isArray(rawOptions)
+        ? rawOptions.map((opt) => String(opt))
+        : [];
+
+      return { id, name, options };
+    })
+    .filter(Boolean) as A2UIQuestionnaireBatchData["questions"];
+
+  return questions.length > 0 ? { questions } : null;
+};
+
 const normalizeProcessingData = (data: unknown): A2UIProcessingData | null => {
   if (!isRecord(data)) {
     return null;
@@ -124,6 +151,11 @@ export const normalizeA2UIPayload = (payload: unknown): A2UIPayload | null => {
   switch (payload.type) {
     case "a2ui_questionnaire": {
       const data = normalizeQuestionnaireData(payload.data);
+      return data ? { type: payload.type, data } : null;
+    }
+
+    case "a2ui_questionnaire_batch": {
+      const data = normalizeQuestionnaireBatchData(payload.data);
       return data ? { type: payload.type, data } : null;
     }
 

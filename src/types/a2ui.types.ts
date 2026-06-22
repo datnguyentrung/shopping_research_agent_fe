@@ -19,6 +19,14 @@ export interface A2UIQuestionnaireData {
   }>;
 }
 
+export interface A2UIQuestionnaireBatchData {
+  questions: Array<{
+    id: string | number;
+    name: string;
+    options: string[];
+  }>;
+}
+
 // --- 2. DATA CHO THẺ SẢN PHẨM TƯƠNG TÁC (Interactive Product) ---
 export interface A2UIProductData {
   product: CapturedData; // Tái sử dụng CapturedData ông đã có
@@ -41,6 +49,7 @@ export interface A2UISingleProductData {
 // Kỹ thuật này giúp TS hiểu: Nếu type là 'a2ui_questionnaire' thì data BẮT BUỘC phải là A2UIQuestionnaireData
 export type A2UIPayload =
   | { type: "a2ui_session_init"; data: A2UISessionInitData }
+  | { type: "a2ui_questionnaire_batch"; data: A2UIQuestionnaireBatchData }
   | { type: "a2ui_questionnaire"; data: A2UIQuestionnaireData }
   | { type: "a2ui_interactive_product"; data: A2UIProductData }
   | { type: "a2ui_processing_status"; data: A2UIProcessingData }
