@@ -2,6 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchChatHistory, streamChat } from "@/services/chatService";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { A2UIPayload } from "../types/a2ui.types";
 import type {
   ChatMessage,
   ChatRequest,
@@ -156,10 +157,9 @@ export const useChatSSE = (
           {
             onChunk: (chunk) => {
               if (chunk.type === "a2ui") {
-                const rawPayload = chunk.a2ui ?? chunk.a2Ui;
-                const normalized = normalizeA2UIPayload(rawPayload);
-                if (normalized && normalized.type === "a2ui_session_init") {
-                  const { sessionId: newId } = normalized.data;
+                const rawPayload = (chunk.a2ui ?? chunk.a2Ui) as A2UIPayload;
+                if (rawPayload && rawPayload.type === "a2ui_session_init") {
+                  const { sessionId: newId } = rawPayload.data;
                   if (newId) {
                     sessionIdRef.current = newId;
                     if (onSessionCreated) onSessionCreated(newId);
