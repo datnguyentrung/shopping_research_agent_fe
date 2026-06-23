@@ -2,7 +2,10 @@ import TryOnModal from "@/components/TryOnModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useConversations, useDeleteConversation } from "@/hooks/useConversations";
+import {
+  useConversations,
+  useDeleteConversation,
+} from "@/hooks/useConversations";
 import {
   EllipsisVertical,
   Gift,
@@ -152,7 +155,9 @@ export default function Sidebar({
         .slice(0, 2)
     : "?";
 
-  const handleNewChat = () => navigate("/");
+  const handleNewChat = () => {
+    window.location.href = "/";
+  };
 
   const cancelDelete = useCallback(() => setDeleteTarget(null), []);
 
