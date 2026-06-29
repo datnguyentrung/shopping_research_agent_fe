@@ -1,12 +1,46 @@
 import { Clock, ImageOff, Shirt, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { fetchTryOnHistory } from "@/services/virtualTryOnService";
 import type { TryOnHistoryItem } from "@/types/vto.types";
 import { formatDateDMY } from "@/utils/format";
 
 import "./HistoryView.scss";
+
+// Chuyển URL Supabase (object/public) sang bản thumbnail nhỏ hơn qua
+// image transformation để giảm payload + chi phí decode/paint cho grid.
+// Ví dụ: .../storage/v1/object/public/vto_results/.../x.png
+//     -> .../storage/v1/render/image/public/vto_results/.../x.png?width=480
+// Nếu URL không phải object/public thì trả về nguyên gốc (an toàn).
+function getSupabaseThumb(url: string, width = 480): string {
+  if (!url || !url.includes("/object/public/")) return url;
+  const renderUrl = url.replace("/object/public/", "/render/image/public/");
+  const sep = renderUrl.includes("?") ? "&" : "?";
+  return `${renderUrl}${sep}width=${width}`;
+}
+
+// Ảnh card: ưu tiên thumbnail, nếu transform không khả dụng (400) thì
+// onError tự quay về URL gốc để không bao giờ mất ảnh.
+function HistoryCardImage({ src, alt }: { src: string; alt: string }) {
+  const thumb = useMemo(() => getSupabaseThumb(src), [src]);
+  const fallbacked = useRef(false);
+
+  return (
+    <img
+      src={thumb}
+      alt={alt}
+      className="tryon-modal__history-card-img"
+      loading="lazy"
+      decoding="async"
+      onError={(e) => {
+        if (fallbacked.current || thumb === src) return;
+        fallbacked.current = true;
+        e.currentTarget.src = src; // fallback về ảnh gốc
+      }}
+    />
+  );
+}
 
 interface HistoryViewProps {
   open: boolean;
@@ -134,18 +168,13 @@ export default function HistoryView({
                   key={item.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ delay: Math.min(index * 0.04, 0.24) }}
                   className="tryon-modal__history-card"
                   role="listitem"
                 >
                   <div className="tryon-modal__history-card-media">
                     {isCompleted ? (
-                      <img
-                        src={imgSrc}
-                        alt="Kết quả thử đồ"
-                        className="tryon-modal__history-card-img"
-                        loading="lazy"
-                      />
+                      <HistoryCardImage src={imgSrc} alt="Kết quả thử đồ" />
                     ) : (
                       <div className="tryon-modal__history-card-placeholder">
                         <ImageOff className="tryon-modal__history-card-placeholder-icon" />

@@ -12,7 +12,9 @@ import { supabase } from "./supabase";
 
 // --- CẤU HÌNH BIẾN MÔI TRƯỜNG ---
 const API_BASE_URL = apiConfig.baseUrl || "http://localhost:8000";
+const API_BACKEND_ML_URL = apiConfig.baseMlUrl || "http://localhost:8001";
 console.log("🔧 API_BASE_URL:", API_BASE_URL);
+console.log("🔧 API_BACKEND_ML_URL:", API_BACKEND_ML_URL);
 
 // --- HÀM LẤY HEADERS DÙNG CHUNG ---
 export const getAuthHeaders = async (): Promise<Record<string, string>> => {
@@ -219,9 +221,20 @@ const axiosInstance = setupInterceptors(
   setupRetry(
     axios.create({
       baseURL: API_BASE_URL,
-      timeout: 30000, // Timeout an toàn (15 giây)
+      timeout: 30000,
+    }),
+  ),
+);
+
+// 🚀 Axios Instance cho ML Backend — dùng chung retry & interceptors
+const axiosMlInstance = setupInterceptors(
+  setupRetry(
+    axios.create({
+      baseURL: API_BACKEND_ML_URL,
+      timeout: 30000,
     }),
   ),
 );
 
 export default axiosInstance;
+export { axiosMlInstance };

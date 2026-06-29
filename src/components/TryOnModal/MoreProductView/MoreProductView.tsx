@@ -46,9 +46,12 @@ export default function MoreProductView({
   onClose,
   cartCount,
 }: MoreProductViewProps) {
-  const [mode, setMode] = useState<"cart" | "tryon">("tryon");
+  const [mode, setMode] = useState<"cart" | "tryon" | "color">("tryon");
 
   // console.log("Mode:", mode);
+
+  // Ảnh nguồn dùng để đổi màu (snapshot ảnh đang thử đồ lúc nhấn "Đổi màu").
+  const [recolorSourceUrl, setRecolorSourceUrl] = useState<string | null>(null);
 
   const [productCategory, setProductCategory] =
     useState<ProductCategory | null>(null);
@@ -402,6 +405,26 @@ export default function MoreProductView({
     setTryOnProgress(0);
   };
 
+  // ── Đổi màu (recolor) ──
+  // Mở phiên đổi màu: snapshot ảnh đang hiển thị làm nguồn, chuyển RightPanel sang color mode.
+  const handleStartRecolor = () => {
+    const source = displayImageUrl || item.imageUrl;
+    if (!source) return;
+    setRecolorSourceUrl(source);
+    setMode("color");
+  };
+
+  // Sau khi lưu ảnh đổi màu: thay ảnh chính, vẫn ở recolor để đổi tiếp nếu muốn.
+  const handleSaveRecolor = (dataUrl: string) => {
+    setActiveImageUrl(dataUrl);
+  };
+
+  // Thoát phiên đổi màu: quay về chế độ thử đồ.
+  const handleCloseRecolor = () => {
+    setRecolorSourceUrl(null);
+    setMode("tryon");
+  };
+
   // Ví dụ hàm thêm sản phẩm vào list (người dùng chủ động)
   const addProduct = (newProduct: CapturedData) => {
     setExtraProducts((prev) => {
@@ -569,6 +592,7 @@ export default function MoreProductView({
         data-center={hasRecommendations ? "on" : "off"}
       >
         <CustomerPanel
+          item={item}
           imageUrl={displayImageUrl}
           isProcessing={isTryOnProcessing}
           progress={tryOnProgress}
@@ -577,8 +601,8 @@ export default function MoreProductView({
           tryOnError={tryOnError}
           onCancelTryOn={handleCancelTryOn}
           onAcceptTryOn={handleAcceptTryOn}
+          onStartRecolor={handleStartRecolor}
           UploadIcon={UploadIcon}
-          CartIcon={CartIcon}
         />
 
         {hasRecommendations && (
@@ -613,6 +637,9 @@ export default function MoreProductView({
           onRemoveProduct={removeProduct}
           gridRef={gridRef}
           emptyDescription={item.description}
+          recolorSourceUrl={recolorSourceUrl}
+          onSaveRecolor={handleSaveRecolor}
+          onCloseRecolor={handleCloseRecolor}
           SparkleIcon={SparkleIcon}
           SpinnerIcon={SpinnerIcon}
           SearchIcon={Search}
@@ -620,23 +647,25 @@ export default function MoreProductView({
           TrashIcon={TrashIcon}
         />
 
-        <ModeSidebar
-          mode={mode}
-          resolvedCartCount={resolvedCartCount}
-          showFilters={recommendationResponses.length > 0}
-          productCategory={productCategory}
-          onSelectMode={setMode}
-          onSelectCategory={(category) => {
-            const nextCategory = category as ProductCategory;
-            if (nextCategory !== productCategory) {
-              setProductSelected(null);
-            }
-            setProductCategory(nextCategory);
-          }}
-          filterItems={filterItems}
-          SparkleIcon={SparkleIcon}
-          CartIcon={CartIcon}
-        />
+        {mode !== "color" && (
+          <ModeSidebar
+            mode={mode}
+            resolvedCartCount={resolvedCartCount}
+            showFilters={recommendationResponses.length > 0}
+            productCategory={productCategory}
+            onSelectMode={setMode}
+            onSelectCategory={(category) => {
+              const nextCategory = category as ProductCategory;
+              if (nextCategory !== productCategory) {
+                setProductSelected(null);
+              }
+              setProductCategory(nextCategory);
+            }}
+            filterItems={filterItems}
+            SparkleIcon={SparkleIcon}
+            CartIcon={CartIcon}
+          />
+        )}
       </div>
 
       <ConfirmModal

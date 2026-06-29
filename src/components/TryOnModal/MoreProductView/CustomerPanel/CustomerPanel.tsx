@@ -1,8 +1,14 @@
 import type { ComponentType, SVGProps } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { Palette } from "lucide-react";
+import type { TryOnHistoryItem } from "../../../../types/vto.types";
+import { formatVnd } from "../../../../utils/formatters";
+import { Popover, PopoverContent, PopoverTrigger } from "../../../ui/popover";
 import "./CustomerPanel.scss";
 
 interface CustomerPanelProps {
+  item: TryOnHistoryItem;
   imageUrl: string;
   isProcessing: boolean;
   progress: number;
@@ -11,11 +17,12 @@ interface CustomerPanelProps {
   tryOnError: string | null;
   onCancelTryOn: () => void;
   onAcceptTryOn: () => void;
+  onStartRecolor: () => void;
   UploadIcon: ComponentType<SVGProps<SVGSVGElement>>;
-  CartIcon: ComponentType<SVGProps<SVGSVGElement>>;
 }
 
 export default function CustomerPanel({
+  item,
   imageUrl,
   isProcessing,
   progress,
@@ -24,11 +31,53 @@ export default function CustomerPanel({
   tryOnError,
   onCancelTryOn,
   onAcceptTryOn,
+  onStartRecolor,
   UploadIcon,
-  CartIcon,
 }: CustomerPanelProps) {
   const showTryOnActions = isProcessing || hasPendingPreview;
   const disableAccept = isProcessing || !hasPendingPreview;
+
+  // Quản lý popover hover cho nút "Sản phẩm gốc".
+  // Radix Popover mặc định mở khi click nên cần điều khiển open bằng tay,
+  // cộng thêm delay đóng ngắn để di chuột từ nút sang popover không bị tắt.
+  const [productPopoverOpen, setProductPopoverOpen] = useState(false);
+  const hideTimerRef = useRef<number | null>(null);
+
+  const cancelHide = () => {
+    if (hideTimerRef.current !== null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  };
+
+  const handleShowPopover = () => {
+    cancelHide();
+    setProductPopoverOpen(true);
+  };
+
+  const handleHidePopover = () => {
+    cancelHide();
+    hideTimerRef.current = window.setTimeout(
+      () => setProductPopoverOpen(false),
+      120,
+    );
+  };
+
+  useEffect(() => {
+    return () => cancelHide();
+  }, []);
+
+  const hasPrice =
+    typeof item.productPrice === "number" && item.productPrice > 0;
+
+  // Chỉ hiển thị 1/4 số ký tự của productName trên nút cho gọn,
+  // phần còn lại xem trong popover khi hover.
+  const productNameShort = (() => {
+    const name = item.productName ?? "";
+    if (name.length <= 4) return name;
+    const limit = Math.ceil(name.length / 4);
+    return `${name.slice(0, limit)}…`;
+  })();
 
   // console.log(
   //   "CustomerPanel render với props:",
@@ -98,17 +147,71 @@ export default function CustomerPanel({
           </>
         ) : (
           <>
-            <button className="mpv-outline-btn" type="button">
-              <span className="mpv-btn-icon" aria-hidden="true">
-                <UploadIcon />
-              </span>
-              Tải lên
-            </button>
-            <button className="mpv-outline-btn" type="button">
-              <span className="mpv-btn-icon" aria-hidden="true">
-                <CartIcon />
-              </span>
-              Chọn làm sản phẩm gốc
+            <Popover
+              open={productPopoverOpen}
+              onOpenChange={setProductPopoverOpen}
+            >
+              <PopoverTrigger asChild>
+                <button
+                  className="mpv-outline-btn mpv-product-btn"
+                  type="button"
+                  onMouseEnter={handleShowPopover}
+                  onMouseLeave={handleHidePopover}
+                  onFocus={handleShowPopover}
+                  onBlur={handleHidePopover}
+                  aria-label={`Xem chi tiết sản phẩm gốc: ${item.productName}`}
+                >
+                  <span className="mpv-btn-icon" aria-hidden="true">
+                    <UploadIcon />
+                  </span>
+                  <span className="mpv-product-btn-text">
+                    Sản phẩm gốc: {productNameShort}
+                  </span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="mpv-product-popover"
+                align="start"
+                sideOffset={4}
+                onMouseEnter={cancelHide}
+                onMouseLeave={handleHidePopover}
+                onOpenAutoFocus={(event) => event.preventDefault()}
+              >
+                {item.productImageUrl ? (
+                  <img
+                    className="mpv-product-popover-img"
+                    src={item.productImageUrl}
+                    alt={item.productName}
+                    loading="lazy"
+                  />
+                ) : null}
+                <div className="mpv-product-popover-body">
+                  <span className="mpv-product-popover-label">
+                    Sản phẩm gốc
+                  </span>
+                  <h4 className="mpv-product-popover-name">
+                    {item.productName}
+                  </h4>
+                  {hasPrice ? (
+                    <span className="mpv-product-popover-price">
+                      {formatVnd(item.productPrice)}
+                    </span>
+                  ) : null}
+                  {item.description ? (
+                    <p className="mpv-product-popover-desc">
+                      {item.description}
+                    </p>
+                  ) : null}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <button
+              className="mpv-outline-btn"
+              type="button"
+              onClick={onStartRecolor}
+            >
+              <Palette size={20} />
+              Đổi màu
             </button>
           </>
         )}

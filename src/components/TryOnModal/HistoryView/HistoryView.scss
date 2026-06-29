@@ -9,6 +9,9 @@
 .tryon-modal__history-card {
   cursor: pointer;
   transition: transform 0.2s ease;
+  // Bỏ qua render/paint các card ngoài màn hình để scroll mượt hơn.
+  content-visibility: auto;
+  contain-intrinsic-size: auto 380px;
 
   &:hover {
     transform: translateY(-3px);
@@ -116,12 +119,11 @@
     background 0.2s ease,
     border-color 0.2s ease,
     color 0.2s ease;
-  backdrop-filter: blur(6px);
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.15);
 }
 
 .tryon-modal__history-card-btn--primary {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.96);
   color: #111827;
 }
 
@@ -145,11 +147,10 @@
   gap: 4px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.96);
   opacity: 0;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
   transition: opacity 0.2s ease;
-  backdrop-filter: blur(4px);
 }
 
 .tryon-modal__history-card:hover .tryon-modal__history-card-badge {

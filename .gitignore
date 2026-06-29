@@ -26,3 +26,5 @@ dist-ssr
 .env
 .claude/*
 .agents/*
+
+package-lock.json

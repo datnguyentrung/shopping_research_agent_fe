@@ -2,10 +2,7 @@ import TryOnModal from "@/components/TryOnModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  useConversations,
-  useDeleteConversation,
-} from "@/hooks/useConversations";
+import { useDeleteSession, useSessions } from "@/hooks/useSessions";
 import {
   EllipsisVertical,
   Gift,
@@ -25,7 +22,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { useNavigate, useParams } from "react-router-dom";
-import type { ConversationResponse } from "../../types/conversation.types";
+import type { SessionResponse } from "../../types/session.types";
 import { formatTimeHM } from "../../utils/format";
 // import { getGuestChats } from "../../utils/guestChatStorage";
 import { useQueryClient } from "@tanstack/react-query";
@@ -62,7 +59,7 @@ export default function Sidebar({
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLogoutPending, setIsLogoutPending] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const deleteMutation = useDeleteConversation();
+  const deleteMutation = useDeleteSession();
   const queryClient = useQueryClient();
 
   const openLogoutModal = useCallback(() => setIsLogoutModalOpen(true), []);
@@ -120,8 +117,7 @@ export default function Sidebar({
     fetchNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useConversations({
-    user_id: user?.id ?? "",
+  } = useSessions({
     limit: 10,
   });
 
@@ -137,7 +133,7 @@ export default function Sidebar({
   }, [inView, hasNextPage, fetchNextPage]);
 
   // Gộp dữ liệu theo trạng thái xác thực
-  const chatHistory = useMemo<ConversationResponse[]>(() => {
+  const chatHistory = useMemo<SessionResponse[]>(() => {
     if (user) {
       return infiniteData?.pages.flatMap((page) => page.items).flat() ?? [];
     }
@@ -315,10 +311,10 @@ export default function Sidebar({
                     {chatHistory
                       .sort(
                         (a, b) =>
-                          new Date(b.updatedAt).getTime() -
-                          new Date(a.updatedAt).getTime(),
+                          new Date(b.updateTime).getTime() -
+                          new Date(a.updateTime).getTime(),
                       )
-                      .map((chat: ConversationResponse) => (
+                      .map((chat: SessionResponse) => (
                         <div
                           key={chat.id}
                           onClick={() => navigate(`/app/${chat.id}`)}
@@ -334,7 +330,7 @@ export default function Sidebar({
                             {chat.title}
                           </span>
                           <span className="chat-sidebar__chat-item-time">
-                            {formatTimeHM(chat.createdAt)}
+                            {formatTimeHM(chat.createTime)}
                           </span>
 
                           <div onClick={(e) => e.stopPropagation()}>

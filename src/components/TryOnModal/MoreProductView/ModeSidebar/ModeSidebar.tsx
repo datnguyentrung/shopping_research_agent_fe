@@ -3,7 +3,7 @@ import type { ComponentType, SVGProps } from "react";
 import type { ProductCategory } from "../../../../types/recommendation.types";
 import "./ModeSidebar.scss";
 
-type Mode = "cart" | "tryon";
+type Mode = "cart" | "tryon" | "color";
 
 type FilterItem = {
   id: string;

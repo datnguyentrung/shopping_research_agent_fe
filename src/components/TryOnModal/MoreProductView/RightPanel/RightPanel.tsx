@@ -1,9 +1,10 @@
 import type { ComponentType, RefObject, SVGProps } from "react";
 
 import type { CapturedData } from "../../../../types";
+import ColorPanel from "../ColorPanel";
 import "./RightPanel.scss";
 
-type Mode = "cart" | "tryon";
+type Mode = "cart" | "tryon" | "color";
 
 type StreamingProduct = {
   product: CapturedData;
@@ -33,6 +34,10 @@ interface RightPanelProps {
   onRemoveProduct: (id: string | number) => void;
   gridRef: RefObject<HTMLDivElement | null>;
   emptyDescription?: string | null;
+  // ── Chế độ đổi màu (recolor) ──
+  recolorSourceUrl?: string | null;
+  onSaveRecolor?: (dataUrl: string) => void;
+  onCloseRecolor?: () => void;
   SparkleIcon: ComponentType<SVGProps<SVGSVGElement>>;
   SpinnerIcon: ComponentType<SVGProps<SVGSVGElement>>;
   SearchIcon: ComponentType<SVGProps<SVGSVGElement>>;
@@ -59,12 +64,29 @@ export default function RightPanel({
   onRemoveProduct,
   gridRef,
   emptyDescription,
+  recolorSourceUrl,
+  onSaveRecolor,
+  onCloseRecolor,
   SparkleIcon,
   SpinnerIcon,
   SearchIcon,
   NotebookPenIcon,
   TrashIcon,
 }: RightPanelProps) {
+  // Chế độ đổi màu: hiển thị ColorPanel thay cho actions + danh sách sản phẩm.
+  if (mode === "color" && recolorSourceUrl) {
+    return (
+      <section className="mpv-zone mpv-right" aria-label="Đổi màu trang phục">
+        <ColorPanel
+          sourceImageUrl={recolorSourceUrl}
+          onSave={onSaveRecolor ?? (() => {})}
+          onClose={onCloseRecolor ?? (() => {})}
+          SparkleIcon={SparkleIcon}
+        />
+      </section>
+    );
+  }
+
   return (
     <section className="mpv-zone mpv-right" aria-label="Sản phẩm chính">
       <div className="mpv-right-actions">
