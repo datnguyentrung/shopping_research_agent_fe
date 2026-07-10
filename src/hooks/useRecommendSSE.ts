@@ -1,4 +1,6 @@
 import { useCallback, useRef, useState } from "react";
+import { apiConfig } from "../services/api";
+import { getAuthHeaders } from "../services/axiosInstance";
 import type { CapturedData } from "../types/product.types";
 import type { PersonalizedRecommendationResult } from "../types/recommendation.types";
 
@@ -131,14 +133,11 @@ export const useRecommendSSE = (): UseRecommendSSEReturn => {
       let finalResult: PersonalizedRecommendationResult | null = null;
 
       try {
-        const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
-        const token = localStorage.getItem("access_token");
+        const authHeaders = await getAuthHeaders();
 
-        const response = await fetch(`${apiBase}/recommend`, {
+        const response = await fetch(`${apiConfig.baseUrl}/recommend`, {
           method: "POST",
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          headers: authHeaders,
           body: formData,
           signal: abortRef.current.signal,
         });

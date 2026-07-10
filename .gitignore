@@ -26,5 +26,6 @@ dist-ssr
 .env
 .claude/*
 .agents/*
+.codegraph/*
 
 package-lock.json

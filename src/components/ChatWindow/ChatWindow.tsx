@@ -248,7 +248,7 @@ export default function ChatWindow({
                       </Avatar>
                     ) : (
                       <div className="chat-window__avatar chat-window__avatar--user">
-                        <AvatarImage src="" alt="User Avatar" />
+                        <span className="chat-window__avatar-text">?</span>
                       </div>
                     )}
 
